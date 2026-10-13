@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkRecon · 暗链接扫描系统</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+[data-theme="light"]{--bg:#f3f0eb;--surface:#fff;--surface-2:#f8f6f3;--surface-3:#efede8;--border:#e0dbd3;--border-l:#ece8e1;--accent:#0b8f4f;--accent-g:rgba(11,143,79,.1);--accent-gs:rgba(11,143,79,.18);--cyan:#0891b2;--cyan-g:rgba(8,145,178,.1);--red:#dc2626;--red-g:rgba(220,38,38,.08);--yellow:#d97706;--yellow-g:rgba(217,119,6,.08);--purple:#7c3aed;--purple-g:rgba(124,58,237,.08);--text:#1a1a2e;--text2:#4a4a5a;--text3:#7a7a8a;--text4:#a8a8b5;--shadow:0 1px 3px rgba(0,0,0,.04);--shadow2:0 4px 16px rgba(0,0,0,.06);--toggle-bg:#d4d0c8;--logo-bg:linear-gradient(135deg,#0b8f4f,#0891b2);--input-bg:#faf9f7;--ring:rgba(11,143,79,.25);--nav-bg:rgba(11,143,79,.12);--overlay:rgba(243,240,235,.88);--log-bg:#f5f4f1}
+[data-theme="dark"]{--bg:#060a10;--surface:#0c1219;--surface-2:#111a24;--surface-3:#182430;--border:#1a2636;--border-l:#223040;--accent:#00ff88;--accent-g:rgba(0,255,136,.1);--accent-gs:rgba(0,255,136,.2);--cyan:#00d4ff;--cyan-g:rgba(0,212,255,.1);--red:#ff3b5c;--red-g:rgba(255,59,92,.1);--yellow:#fbbf24;--yellow-g:rgba(251,191,36,.1);--purple:#a78bfa;--purple-g:rgba(167,139,250,.1);--text:#d8e0ea;--text2:#8a9ab0;--text3:#5a6a80;--text4:#3a4a5c;--shadow:0 1px 3px rgba(0,0,0,.2);--shadow2:0 4px 16px rgba(0,0,0,.3);--toggle-bg:#1a2636;--logo-bg:linear-gradient(135deg,#00ff88,#00d4ff);--input-bg:#080d14;--ring:rgba(0,255,136,.25);--nav-bg:rgba(0,255,136,.08);--overlay:rgba(6,10,16,.88);--log-bg:#080d14}
+html{font-size:16px}
+body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden;transition:background .45s,color .45s}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px;opacity:.02;pointer-events:none;z-index:9999}
+[data-theme="dark"] body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,.012) 2px,rgba(0,255,136,.012) 4px);pointer-events:none;z-index:9998}
+.sidebar{width:260px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100}
+.main{flex:1;margin-left:260px;min-height:100vh}
+.topbar{height:62px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:var(--overlay);backdrop-filter:blur(16px);position:sticky;top:0;z-index:50}
+.page{display:none;padding:28px 32px 48px}.page.active{display:block;animation:fadeUp .4s ease forwards}
+.logo{padding:24px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.logo-icon{width:40px;height:40px;border-radius:10px;background:var(--logo-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-icon svg{width:20px;height:20px}
+.logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.03em}
+.logo-text span{color:var(--accent)}
+.nav-section{padding:16px 10px;flex:1;overflow-y:auto}
+.nav-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.14em;color:var(--text4);padding:0 12px;margin-bottom:6px;margin-top:18px}
+.nav-label:first-child{margin-top:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text3);cursor:pointer;transition:all .2s;font-size:.92rem;margin-bottom:2px;border-left:3px solid transparent}
+.nav-item:hover{background:var(--accent-g);color:var(--text2)}
+.nav-item.active{background:var(--nav-bg);color:var(--accent);font-weight:500;border-left-color:var(--accent)}
+.nav-icon{width:20px;text-align:center;font-size:1rem;flex-shrink:0}
+.badge{margin-left:auto;background:var(--red);color:#fff;font-size:.6rem;padding:2px 8px;border-radius:10px;font-weight:700;font-family:'Syne',sans-serif}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);font-size:.76rem;color:var(--text4);display:flex;align-items:center}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:8px;animation:blink 2.5s ease infinite}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.topbar-time{font-size:.8rem;color:var(--text3);font-variant-numeric:tabular-nums}
+.topbar-btn{background:var(--surface);border:1px solid var(--border);color:var(--text3);padding:8px 18px;border-radius:8px;font-family:'DM Mono',monospace;font-size:.8rem;cursor:pointer;transition:all .25s}
+.topbar-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-g)}
+.theme-toggle{width:52px;height:28px;border-radius:14px;background:var(--toggle-bg);border:1px solid var(--border);cursor:pointer;position:relative}
+.theme-toggle .knob{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:all .4s cubic-bezier(.68,-.15,.27,1.15);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+[data-theme="dark"] .theme-toggle .knob{transform:translateX(24px)}
+.theme-toggle .knob svg{width:12px;height:12px}
+.icon-sun{color:#d97706}.icon-moon{color:#0a0f18;position:absolute;opacity:0}
+[data-theme="dark"] .icon-sun{opacity:0}[data-theme="dark"] .icon-moon{opacity:1}
+[data-theme="light"] .icon-sun{opacity:1}[data-theme="light"] .icon-moon{opacity:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)}
+.stats-grid{display:grid;gap:16px;margin-bottom:28px;grid-template-columns:repeat(4,1fr);align-items:stretch}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;position:relative;overflow:hidden;box-shadow:var(--shadow);transition:all .3s;display:flex;flex-direction:column;gap:4px;min-height:112px;justify-content:center}
+.stat-card:hover{box-shadow:var(--shadow2);transform:translateY(-1px)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.c-accent::before,.stat-card.c-cyan::before,.stat-card.c-yellow::before,.stat-card.c-purple::before{background:var(--accent)}
+.stat-card.c-red::before{background:var(--red)}
+.stat-label{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+.stat-value{font-family:'Syne',sans-serif;font-weight:600;font-size:1.6rem;line-height:1.2;letter-spacing:-.02em;color:var(--text)}
+.stat-card.c-red .stat-value{color:var(--red)}
+.stat-sub{font-size:.64rem;color:var(--text4);opacity:.7;margin-top:2px}
+.section-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.tag{display:inline-block;padding:3px 10px;border-radius:5px;font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.tag-danger{background:var(--red-g);color:var(--red)}.tag-warning{background:var(--yellow-g);color:var(--yellow)}.tag-safe{background:var(--accent-g);color:var(--accent)}.tag-info{background:var(--cyan-g);color:var(--cyan)}.tag-purple{background:var(--purple-g);color:var(--purple)}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:500}
+.form-input,.form-select,.form-textarea{background:var(--input-bg);border:1.5px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'DM Mono',monospace;font-size:.88rem;color:var(--text);outline:none;transition:all .25s;width:100%}
+.form-textarea{resize:vertical;min-height:70px;line-height:1.5}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--text4)}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring)}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%237a7a8a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-chips{display:flex;flex-wrap:wrap;gap:6px}
+.form-chip{padding:5px 12px;border-radius:6px;font-size:.78rem;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .2s;font-family:'DM Mono',monospace}
+.form-chip.active{border-color:var(--accent);color:var(--accent);background:var(--accent-g)}
+.client-chips{display:flex;gap:8px;flex-wrap:wrap}
+.client-chip{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;cursor:pointer;transition:all .2s;font-size:.8rem;color:var(--text3);font-family:'DM Mono',monospace}
+.chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.client-chip.active{font-weight:500}
+.cc-a.active{border-color:var(--accent);color:var(--accent);background:var(--accent-g)}.cc-b.active{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-g)}.cc-c.active{border-color:var(--purple);color:var(--purple);background:var(--purple-g)}.cc-d.active{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-g)}
+.cc-a .chip-dot{background:var(--accent)}.cc-b .chip-dot{background:var(--cyan)}.cc-c .chip-dot{background:var(--purple)}.cc-d .chip-dot{background:var(--yellow)}
+.filter-pills{display:flex;gap:6px}
+.filter-pill{padding:5px 14px;border-radius:20px;font-size:.78rem;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .25s;font-family:'DM Mono',monospace}
+.filter-pill.active,.filter-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-g)}
+.btn{padding:10px 22px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;border:none;transition:all .25s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 4px 16px var(--accent-gs)}
+.btn-secondary{background:var(--surface-3);color:var(--text3);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--text4);color:var(--text)}
+.btn-sm{padding:6px 14px;font-size:.76rem}
+.btn-danger{background:var(--red-g);color:var(--red);border:1px solid transparent;font-size:.76rem;padding:6px 14px}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-danger-solid{background:var(--red);color:#fff;font-size:.8rem;padding:8px 18px}
+.btn-danger-solid:hover{filter:brightness(1.1)}
+.option-toggle{display:flex;align-items:center;gap:9px;font-size:.82rem;color:var(--text3);cursor:pointer;user-select:none}
+.option-toggle input{display:none}
+.toggle-track{width:34px;height:18px;background:var(--surface-3);border:1px solid var(--border);border-radius:9px;position:relative;transition:all .3s}
+.toggle-track::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:var(--text4);top:2px;left:2px;transition:all .3s cubic-bezier(.68,-.15,.27,1.15)}
+.option-toggle input:checked+.toggle-track{background:var(--accent-gs);border-color:var(--accent)}
+.option-toggle input:checked+.toggle-track::after{background:var(--accent);transform:translateX(16px)}
+.progress-track{height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--cyan));transition:width .5s}
+.spinner{width:14px;height:14px;border:2px solid var(--accent-g);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+.toast-container{position:fixed;top:70px;right:32px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px 18px;font-size:.86rem;color:var(--text);box-shadow:var(--shadow2);display:flex;align-items:center;gap:10px;animation:toastIn .35s ease,toastOut .35s ease 3s forwards;max-width:400px}
+.toast.error{border-left-color:var(--red)}
+th{padding:14px 18px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text4);background:var(--surface-2);border-bottom:1px solid var(--border);font-family:'Syne',sans-serif;font-weight:600}
+td{padding:13px 18px;font-size:.88rem;border-bottom:1px solid var(--border-l)}
+.task-checkbox{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border);background:var(--input-bg);cursor:pointer;accent-color:var(--accent);flex-shrink:0;transition:all .2s}
+.task-checkbox:checked{background:var(--accent);border-color:var(--accent)}
+.batch-bar{display:none;align-items:center;gap:14px;padding:12px 18px;background:var(--accent-g);border:1px solid var(--accent);border-radius:10px;margin-bottom:14px;animation:fadeUp .3s ease}
+.batch-bar.show{display:flex}
+.batch-bar-text{font-size:.85rem;color:var(--accent);font-weight:500;flex:1}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 32px;max-width:520px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.2);transform:translateY(16px);transition:transform .25s;max-height:85vh;overflow-y:auto}
+.modal-overlay.show .modal-box{transform:translateY(0)}
+.modal-icon{width:48px;height:48px;border-radius:50%;background:var(--accent-g);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--accent);font-size:1.4rem}
+.modal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;text-align:center;margin-bottom:8px}
+.modal-desc{font-size:.88rem;color:var(--text3);text-align:center;line-height:1.6;margin-bottom:24px}
+.modal-actions{display:flex;gap:10px}
+.modal-actions .btn{flex:1;justify-content:center}
+.empty-hint{text-align:center;padding:40px 20px;color:var(--text4);font-size:.88rem}
+.client-color-picks{display:flex;gap:10px}
+.client-color-pick{width:36px;height:36px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;position:relative}
+.client-color-pick:hover{transform:scale(1.1)}
+.client-color-pick.active{border-color:var(--text);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.client-color-pick.active::after{content:'✓';position:absolute;font-size:.7rem;font-weight:700;color:#fff}
+.client-icon-picks{display:flex;gap:8px;flex-wrap:wrap}
+.client-icon-pick{width:38px;height:38px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;transition:all .2s;color:var(--text3)}
+.client-icon-pick:hover{border-color:var(--accent);color:var(--accent)}
+.client-icon-pick.active{border-color:var(--accent);background:var(--accent-g);color:var(--accent)}
+.client-page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:16px}
+.client-grid{display:grid;grid-template-columns:repeat(2,minmax(390px,1fr));gap:18px;align-items:stretch}
+.client-empty{grid-column:1/-1;background:linear-gradient(135deg,var(--surface),var(--surface-2));border:1px dashed var(--border);border-radius:14px;padding:46px 24px;text-align:center;box-shadow:var(--shadow)}
+.client-empty .empty-title{font-family:'Syne',sans-serif;font-weight:750;font-size:1.08rem;color:var(--text);margin-bottom:6px}
+.client-empty .empty-sub{font-size:.84rem;color:var(--text4)}
+.client-card{position:relative;overflow:hidden;padding:0;min-height:250px;background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(242,248,250,.94) 52%,rgba(255,255,255,.9));border:1px solid color-mix(in srgb,var(--client-color) 14%,var(--border));border-radius:16px;box-shadow:0 16px 34px rgba(15,23,42,.1),0 2px 6px rgba(15,23,42,.05),0 1px 0 rgba(255,255,255,.82) inset;animation:cardPop .4s ease forwards;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.client-card::before{content:'';position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,var(--client-color),color-mix(in srgb,var(--client-color) 28%,transparent),transparent 82%)}
+.client-card::after{content:'';position:absolute;right:-34px;top:-52px;width:160px;height:160px;border-radius:44px;background:linear-gradient(145deg,var(--client-soft),rgba(255,255,255,.1));opacity:.9;transform:rotate(12deg);pointer-events:none}
+.client-card:hover{transform:translateY(-3px);box-shadow:0 22px 46px rgba(15,23,42,.15),0 3px 10px rgba(15,23,42,.07),0 1px 0 rgba(255,255,255,.88) inset;border-color:color-mix(in srgb,var(--client-color) 42%,var(--border))}
+.client-card-inner{position:relative;z-index:1;padding:22px}
+.client-card-top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.client-avatar{width:64px;height:64px;border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.8),var(--client-soft));display:flex;align-items:center;justify-content:center;color:var(--client-color);font-family:'Syne',sans-serif;font-weight:850;font-size:1.38rem;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--client-color) 24%,transparent),0 12px 24px rgba(15,23,42,.1)}
+.client-main{flex:1;min-width:0}
+.client-title-row{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.client-name{font-family:'Syne',sans-serif;font-weight:850;font-size:1.16rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.client-status{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;background:var(--client-soft);color:var(--client-color);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.client-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--client-color);box-shadow:0 0 0 4px var(--client-soft)}
+.client-domain{font-size:.8rem;color:var(--text4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.client-actions{display:flex;gap:7px;align-self:flex-start}
+.client-action-btn{border:1px solid var(--border);background:rgba(255,255,255,.72);color:var(--text3);border-radius:9px;padding:7px 12px;font-family:'Syne',sans-serif;font-weight:650;font-size:.76rem;cursor:pointer;transition:all .22s ease;box-shadow:0 6px 14px rgba(15,23,42,.05)}
+.client-action-btn:hover{border-color:var(--client-color);color:var(--client-color);background:var(--client-soft)}
+.client-action-btn.danger{background:var(--red-g);border-color:transparent;color:var(--red)}
+.client-action-btn.danger:hover{background:var(--red);color:#fff}
+.client-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.client-metric{position:relative;overflow:hidden;min-height:100px;border:1px solid color-mix(in srgb,var(--metric-color) 18%,var(--border-l));border-radius:13px;background:linear-gradient(145deg,rgba(255,255,255,.88),rgba(255,255,255,.58));padding:13px 14px 15px;box-shadow:0 10px 22px rgba(15,23,42,.06),inset 0 1px 0 rgba(255,255,255,.9);display:flex;flex-direction:column;justify-content:space-between}
+.client-metric::before{content:'';position:absolute;right:-22px;top:-28px;width:74px;height:74px;border-radius:26px;background:var(--metric-color);opacity:.09;transform:rotate(16deg)}
+.client-metric::after{content:'';position:absolute;left:14px;right:14px;bottom:10px;height:4px;border-radius:3px;background:linear-gradient(90deg,var(--metric-color),color-mix(in srgb,var(--metric-color) 28%,transparent));opacity:.42}
+.client-metric-label{font-size:.76rem;color:var(--text4);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;position:relative;z-index:1}
+.client-metric-value{position:relative;z-index:1;align-self:flex-start;margin-top:8px;padding:0;background:transparent;box-shadow:none;font-family:Arial,"Helvetica Neue",Inter,"Microsoft YaHei",sans-serif;font-weight:700;font-size:2.25rem;line-height:1.05;color:#111a2f;letter-spacing:0;text-align:left;font-variant-numeric:tabular-nums;transform:scaleY(1.18);transform-origin:left center}
+.client-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border-l);padding-top:14px}
+.client-contact{display:flex;align-items:center;gap:9px;min-width:0;color:var(--text3);font-size:.8rem}
+.client-contact-dot{width:8px;height:8px;border-radius:50%;background:var(--client-color);box-shadow:0 0 0 4px var(--client-soft);flex-shrink:0}
+.client-note{color:var(--text4);font-size:.76rem;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-theme="dark"] .client-card{background:linear-gradient(145deg,rgba(12,18,25,.98),rgba(17,26,36,.92) 55%,rgba(8,13,20,.96));box-shadow:0 20px 52px rgba(0,0,0,.28),0 1px 0 rgba(255,255,255,.04) inset}
+[data-theme="dark"] .client-action-btn,[data-theme="dark"] .client-metric{background:rgba(8,13,20,.52)}
+[data-theme="dark"] .client-metric-value{color:#e8eef8}
+@media(max-width:960px){.client-grid{grid-template-columns:1fr}}
+@media(max-width:680px){
+  .client-page-head{align-items:flex-start;flex-direction:column}
+  .client-page-head .btn{width:100%}
+  .client-card-inner{padding:20px}
+  .client-card-top{align-items:flex-start;flex-wrap:wrap}
+  .client-actions{width:100%;justify-content:flex-end}
+  .client-metrics{grid-template-columns:1fr}
+  .client-footer{align-items:flex-start;flex-direction:column}
+  .client-note{max-width:100%}
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(30px)}}
+@keyframes cardPop{from{opacity:0;transform:scale(.92) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@media(max-width:1200px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0}.page{padding:20px 16px}}
+
+/* ===== Visual depth upgrade: enterprise light console ===== */
+[data-theme="light"]{
+  --bg:#eef3f8;
+  --surface:#ffffff;
+  --surface-2:#f7fafc;
+  --surface-3:#edf4f8;
+  --border:#dce6ef;
+  --border-l:#edf2f7;
+  --accent:#0f8f6c;
+  --accent-g:rgba(15,143,108,.1);
+  --accent-gs:rgba(15,143,108,.24);
+  --cyan:#2563eb;
+  --cyan-g:rgba(37,99,235,.1);
+  --red:#e03131;
+  --red-g:rgba(224,49,49,.1);
+  --yellow:#c47a13;
+  --yellow-g:rgba(196,122,19,.12);
+  --purple:#7c3aed;
+  --purple-g:rgba(124,58,237,.1);
+  --text:#152033;
+  --text2:#3d4d63;
+  --text3:#738298;
+  --text4:#a3afbd;
+  --shadow:0 10px 26px rgba(15,23,42,.07),0 1px 2px rgba(15,23,42,.04);
+  --shadow2:0 20px 48px rgba(15,23,42,.12),0 2px 6px rgba(15,23,42,.05);
+  --toggle-bg:#dfe8f0;
+  --logo-bg:linear-gradient(135deg,#08a87d,#2f75e8);
+  --input-bg:#fbfdff;
+  --ring:rgba(15,143,108,.18);
+  --nav-bg:linear-gradient(90deg,rgba(15,143,108,.16),rgba(37,99,235,.08));
+  --overlay:rgba(255,255,255,.76);
+  --log-bg:#0d1724;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:Inter,"Microsoft YaHei","PingFang SC","DM Mono",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 16% -8%,rgba(15,143,108,.14),transparent 30rem),
+    radial-gradient(circle at 88% 2%,rgba(37,99,235,.11),transparent 28rem),
+    linear-gradient(180deg,#f7fafc 0,#eef3f8 42%,#e9eff5 100%)!important;
+}
+body::before{
+  opacity:.52;
+  background-image:
+    linear-gradient(rgba(15,23,42,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(15,23,42,.035) 1px,transparent 1px)!important;
+  background-size:28px 28px!important;
+  mask-image:linear-gradient(180deg,rgba(0,0,0,.62),transparent 76%);
+  z-index:0!important;
+}
+.sidebar,
+.main,
+.topbar,
+.page{position:relative}
+.sidebar{z-index:20}
+.main{z-index:1;background:transparent}
+.topbar{
+  height:68px!important;
+  padding:0 36px!important;
+  background:rgba(255,255,255,.78)!important;
+  border-bottom:1px solid rgba(211,222,233,.78)!important;
+  box-shadow:0 14px 34px rgba(15,23,42,.06)!important;
+}
+.topbar-title{
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-size:1.16rem!important;
+  font-weight:850!important;
+  letter-spacing:-.02em!important;
+}
+.topbar-time{font-size:.84rem!important;color:#617089!important}
+.topbar-btn{
+  height:38px!important;
+  border-radius:12px!important;
+  padding:0 18px!important;
+  background:rgba(255,255,255,.86)!important;
+  color:#506078!important;
+  box-shadow:0 8px 18px rgba(15,23,42,.06)!important;
+}
+.topbar-btn:hover{
+  color:var(--accent)!important;
+  border-color:rgba(15,143,108,.34)!important;
+  box-shadow:0 12px 26px rgba(15,143,108,.12)!important;
+}
+.theme-toggle{
+  border:0!important;
+  box-shadow:inset 0 1px 2px rgba(15,23,42,.12),0 8px 18px rgba(15,23,42,.08)!important;
+}
+.sidebar{
+  width:264px!important;
+  background:rgba(255,255,255,.86)!important;
+  backdrop-filter:blur(18px) saturate(135%)!important;
+  border-right:1px solid rgba(211,222,233,.85)!important;
+  box-shadow:14px 0 38px rgba(15,23,42,.055)!important;
+}
+.main{margin-left:264px!important}
+.logo{
+  min-height:76px!important;
+  padding:0 22px!important;
+  border-bottom:1px solid rgba(211,222,233,.8)!important;
+}
+.logo-icon{
+  width:42px!important;
+  height:42px!important;
+  border-radius:13px!important;
+  box-shadow:0 14px 26px rgba(15,143,108,.22),inset 0 1px 0 rgba(255,255,255,.38)!important;
+}
+.logo-text{
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-size:1.22rem!important;
+  font-weight:900!important;
+  letter-spacing:-.04em!important;
+}
+.nav-section{padding:18px 12px!important}
+.nav-label{
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  letter-spacing:.08em!important;
+  font-weight:800!important;
+  color:#a0acbb!important;
+  margin-top:22px!important;
+}
+.nav-item{
+  min-height:42px!important;
+  border-left:0!important;
+  border-radius:13px!important;
+  padding:0 12px!important;
+  margin-bottom:5px!important;
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-weight:720!important;
+  color:#77859a!important;
+}
+.nav-item::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:11px;
+  bottom:11px;
+  width:3px;
+  border-radius:999px;
+  background:var(--accent);
+  opacity:0;
+  transition:.2s;
+}
+.nav-item:hover{
+  background:rgba(15,143,108,.075)!important;
+  color:#253247!important;
+  transform:translateX(1px);
+}
+.nav-item.active{
+  background:var(--nav-bg)!important;
+  color:var(--accent)!important;
+  box-shadow:inset 0 0 0 1px rgba(15,143,108,.08),0 10px 20px rgba(15,143,108,.08)!important;
+}
+.nav-item.active::before{opacity:1}
+.nav-icon{
+  width:28px!important;
+  height:28px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:9px!important;
+  background:#edf4f8!important;
+  color:#8a98aa!important;
+  font-size:.9rem!important;
+}
+.nav-item.active .nav-icon{
+  background:rgba(15,143,108,.12)!important;
+  color:var(--accent)!important;
+}
+.sidebar-footer{
+  padding:16px 22px!important;
+  background:rgba(247,250,252,.86)!important;
+  border-top:1px solid rgba(211,222,233,.85)!important;
+  color:#95a2b2!important;
+}
+.page{padding:30px 36px 54px!important}
+.card,
+.stat-card{
+  border-radius:18px!important;
+  border:1px solid rgba(211,222,233,.9)!important;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,255,255,.88))!important;
+  box-shadow:var(--shadow)!important;
+}
+.card:hover,
+.stat-card:hover{
+  box-shadow:var(--shadow2)!important;
+}
+.stats-grid{
+  gap:18px!important;
+  margin-bottom:26px!important;
+}
+.stat-card{
+  min-height:126px!important;
+  padding:22px 24px!important;
+  justify-content:flex-start!important;
+  overflow:hidden!important;
+}
+.stat-card::before{
+  top:0!important;
+  left:0!important;
+  right:0!important;
+  height:4px!important;
+  background:linear-gradient(90deg,var(--accent),rgba(15,143,108,.18))!important;
+}
+.stat-card.c-cyan::before{background:linear-gradient(90deg,var(--cyan),rgba(37,99,235,.14))!important}
+.stat-card.c-red::before{background:linear-gradient(90deg,var(--red),rgba(224,49,49,.14))!important}
+.stat-card.c-yellow::before{background:linear-gradient(90deg,var(--yellow),rgba(196,122,19,.14))!important}
+.stat-card::after{
+  content:"";
+  position:absolute;
+  width:98px;
+  height:98px;
+  border-radius:999px;
+  right:-28px;
+  bottom:-38px;
+  background:radial-gradient(circle,rgba(15,143,108,.13),transparent 68%);
+}
+.stat-card.c-cyan::after{background:radial-gradient(circle,rgba(37,99,235,.13),transparent 68%)}
+.stat-card.c-red::after{background:radial-gradient(circle,rgba(224,49,49,.12),transparent 68%)}
+.stat-card.c-yellow::after{background:radial-gradient(circle,rgba(196,122,19,.13),transparent 68%)}
+.stat-label{
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-size:.74rem!important;
+  font-weight:820!important;
+  color:#7d8ba0!important;
+  letter-spacing:.02em!important;
+  text-transform:none!important;
+  margin-bottom:12px!important;
+}
+.stat-value{
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-size:2.12rem!important;
+  font-weight:900!important;
+  letter-spacing:-.05em!important;
+  color:#152033!important;
+}
+.stat-card.c-red .stat-value{color:var(--red)!important}
+.stat-sub{
+  margin-top:10px!important;
+  font-size:.78rem!important;
+  color:#a0acbb!important;
+  opacity:1!important;
+}
+#page-dashboard>.card{
+  position:relative!important;
+  padding:32px 34px!important;
+  overflow:hidden!important;
+  background:
+    radial-gradient(circle at 92% 8%,rgba(37,99,235,.09),transparent 18rem),
+    radial-gradient(circle at 0 100%,rgba(15,143,108,.1),transparent 18rem),
+    linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,255,255,.9))!important;
+}
+#page-dashboard>.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:
+    linear-gradient(90deg,rgba(15,143,108,.08) 1px,transparent 1px),
+    linear-gradient(rgba(15,143,108,.06) 1px,transparent 1px);
+  background-size:34px 34px;
+  mask-image:radial-gradient(circle at 86% 10%,rgba(0,0,0,.42),transparent 44%);
+  pointer-events:none;
+}
+#page-dashboard>.card>*{position:relative;z-index:1}
+.section-title{
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-size:1.12rem!important;
+  font-weight:900!important;
+  letter-spacing:-.02em!important;
+}
+.section-dot{
+  width:9px!important;
+  height:9px!important;
+  box-shadow:0 0 0 7px rgba(15,143,108,.11)!important;
+}
+#page-dashboard>.card p{
+  max-width:780px;
+  color:#6f7f93!important;
+  font-size:.94rem!important;
+}
+.form-input,
+.form-select,
+.form-textarea{
+  border-radius:14px!important;
+  border:1px solid rgba(197,211,224,.92)!important;
+  background:rgba(255,255,255,.9)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 8px 18px rgba(15,23,42,.035)!important;
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  color:#263247!important;
+}
+.form-input:hover,
+.form-select:hover,
+.form-textarea:hover{border-color:rgba(15,143,108,.36)!important}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus{
+  border-color:var(--accent)!important;
+  box-shadow:0 0 0 4px var(--ring),0 12px 28px rgba(15,143,108,.08)!important;
+}
+#scanInput{
+  height:56px!important;
+  padding:0 20px!important;
+  font-size:.95rem!important;
+}
+#scanBtn{
+  height:56px!important;
+  min-width:142px!important;
+  border-radius:14px!important;
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-weight:850!important;
+  box-shadow:0 16px 30px rgba(15,143,108,.24)!important;
+}
+.btn{
+  border-radius:12px!important;
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-weight:820!important;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),#168aa4)!important;
+}
+.btn-primary:hover{
+  filter:none!important;
+  box-shadow:0 18px 34px rgba(15,143,108,.26)!important;
+}
+.option-toggle{
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-weight:760!important;
+  color:#536278!important;
+}
+.toggle-track{
+  width:38px!important;
+  height:22px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(197,211,224,.9)!important;
+  background:#dfe8f0!important;
+}
+.toggle-track::after{
+  width:16px!important;
+  height:16px!important;
+  top:2px!important;
+  left:2px!important;
+  background:#91a0b2!important;
+}
+.option-toggle input:checked+.toggle-track{
+  background:rgba(15,143,108,.16)!important;
+  border-color:rgba(15,143,108,.38)!important;
+}
+.option-toggle input:checked+.toggle-track::after{
+  transform:translateX(16px)!important;
+  background:var(--accent)!important;
+}
+.progress-track{
+  height:8px!important;
+  border-radius:999px!important;
+}
+.progress-fill{border-radius:999px!important}
+#progressLog,
+#liveLog{
+  background:#0d1724!important;
+  color:#b8c5d6!important;
+  border:1px solid rgba(31,46,66,.9)!important;
+  border-radius:14px!important;
+  font-family:"Cascadia Mono","JetBrains Mono",Consolas,monospace!important;
+}
+#page-dashboard>div[style*="grid-template-columns:1fr 1fr"]{
+  gap:18px!important;
+}
+#page-dashboard>div[style*="grid-template-columns:1fr 1fr"]>.card{
+  min-height:210px!important;
+  padding:24px 26px!important;
+  position:relative!important;
+  overflow:hidden!important;
+}
+#page-dashboard>div[style*="grid-template-columns:1fr 1fr"]>.card::after{
+  content:"";
+  position:absolute;
+  inset:auto 24px 22px auto;
+  width:92px;
+  height:92px;
+  border-radius:28px;
+  background:linear-gradient(135deg,rgba(15,143,108,.1),rgba(37,99,235,.08));
+  transform:rotate(12deg);
+}
+.empty-hint{
+  color:#a0acbb!important;
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  font-weight:760!important;
+}
+th{
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+  background:#f6fafc!important;
+  color:#8190a4!important;
+}
+td{color:#4c5b70!important}
+.modal-box{
+  border-radius:20px!important;
+  box-shadow:0 30px 80px rgba(15,23,42,.22)!important;
+}
+.toast{
+  border-radius:14px!important;
+  box-shadow:0 20px 48px rgba(15,23,42,.14)!important;
+  font-family:Inter,"Microsoft YaHei",sans-serif!important;
+}
+@media(max-width:1200px){
+  .page{padding:26px 24px 46px!important}
+  #page-dashboard>div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}
+@media(max-width:768px){
+  body{display:block!important}
+  .sidebar{
+    display:flex!important;
+    position:sticky!important;
+    top:0!important;
+    width:100%!important;
+    min-height:auto!important;
+    height:auto!important;
+    border-right:0!important;
+    border-bottom:1px solid var(--border)!important;
+  }
+  .logo{min-height:58px!important;padding:0 14px!important;border-bottom:0!important}
+  .logo-icon{width:36px!important;height:36px!important}
+  .logo-text{font-size:1.05rem!important;white-space:nowrap!important}
+  .nav-section{
+    display:flex!important;
+    flex:1!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    gap:8px!important;
+    padding:10px 12px!important;
+  }
+  .nav-label,.sidebar-footer{display:none!important}
+  .nav-item{
+    white-space:nowrap!important;
+    min-height:38px!important;
+    margin:0!important;
+    padding:0 13px!important;
+  }
+  .nav-icon{display:none!important}
+  .main{margin-left:0!important}
+  .topbar{height:58px!important;padding:0 16px!important;top:58px!important}
+  .topbar-time{display:none!important}
+  .page{padding:18px 14px 36px!important}
+  .stats-grid{grid-template-columns:1fr!important}
+  #page-dashboard>.card{padding:22px!important}
+  #page-dashboard>.card div[style*="display:flex;gap:12px"]{flex-direction:column!important}
+  #scanBtn{width:100%!important}
+}
+
+/* Layout correction: keep sidebar out of document flow, avoid double left offset */
+@media(min-width:769px){
+  .sidebar{
+    position:fixed!important;
+    left:0!important;
+    top:0!important;
+    bottom:0!important;
+    width:264px!important;
+  }
+  .main{
+    margin-left:264px!important;
+    width:calc(100% - 264px)!important;
+    flex:none!important;
+  }
+  .topbar,
+  .page{
+    margin-left:0!important;
+    transform:none!important;
+  }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="4 3" opacity=".5"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/></svg></div>
+    <div class="logo-text">Link<span>Recon</span></div>
+  </div>
+  <nav class="nav-section">
+    <div class="nav-label">核心功能</div>
+    <div class="nav-item active" data-page="dashboard"><span class="nav-icon">◈</span> 扫描控制台</div>
+    <div class="nav-item" data-page="tasks"><span class="nav-icon">⊟</span> 任务管理</div>
+    <div class="nav-item" data-page="batch"><span class="nav-icon">⊞</span> 批量扫描</div>
+    <div class="nav-item" data-page="history"><span class="nav-icon">◷</span> 扫描历史</div>
+    <div class="nav-item" data-page="monitor"><span class="nav-icon">⟐</span> 实时监控</div>
+    <div class="nav-label">客户管理</div>
+    <div class="nav-item" data-page="clients"><span class="nav-icon">◉</span> 客户列表</div>
+    <div class="nav-label">分析报告</div>
+    <div class="nav-item" data-page="report"><span class="nav-icon">▤</span> 威胁报告</div>
+    <div class="nav-label">系统</div>
+    <div class="nav-item" data-page="settings"><span class="nav-icon">⚙</span> 引擎配置</div>
+  </nav>
+  <div class="sidebar-footer"><span class="status-dot"></span> 引擎运行中 · v2.4.1</div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="pageTitle">扫描控制台</div>
+    <div class="topbar-right">
+      <div class="topbar-time" id="clock"></div>
+      <div class="theme-toggle" id="themeToggle"><div class="knob"><svg class="icon-sun" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div></div>
+      <button class="topbar-btn" id="topbarAction">导出报告</button>
+    </div>
+  </div>
+
+  <!-- 1. 扫描控制台 -->
+  <div class="page active" id="page-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card c-accent"><div class="stat-label">今日扫描</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">暂无数据</div></div>
+      <div class="stat-card c-cyan"><div class="stat-label">可疑链接</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">去重统计</div></div>
+      <div class="stat-card c-red"><div class="stat-label">高危威胁</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">暂无数据</div></div>
+      <div class="stat-card c-yellow"><div class="stat-label">平均耗时</div><div class="stat-value" data-target="0" data-format="sec">0s</div><div class="stat-sub">暂无数据</div></div>
+    </div>
+    <div class="card" style="padding:28px;margin-bottom:24px;">
+      <div class="section-title"><span class="section-dot"></span> 快速扫描</div>
+      <p style="color:var(--text3);font-size:.9rem;margin-bottom:20px;line-height:1.7;">输入目标 URL 或域名，引擎将自动探测隐藏链接、暗链、iframe 注入及异常跳转。</p>
+      <div style="display:flex;gap:12px;margin-bottom:18px;">
+        <input type="text" class="form-input" id="scanInput" placeholder="https://example.com 或 example.com" style="border-radius:10px;padding:14px 20px;font-size:.92rem;">
+        <button class="btn btn-primary" id="scanBtn" onclick="startScan()" style="padding:14px 32px;border-radius:10px;white-space:nowrap">开始扫描</button>
+      </div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap;">
+        <label class="option-toggle"><input type="checkbox" checked><span class="toggle-track"></span> 深度爬取</label>
+        <label class="option-toggle"><input type="checkbox" checked><span class="toggle-track"></span> JS 渲染</label>
+      </div>
+      <div id="scanProgress" style="margin-top:20px;display:none;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:.88rem;color:var(--accent);display:flex;align-items:center;gap:10px;"><span class="spinner"></span><span id="progressLabel">初始化...</span></span>
+          <span style="font-size:.82rem;color:var(--text3);" id="progressPct">0%</span>
+        </div>
+        <div class="progress-track" style="margin-bottom:14px;"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div id="progressLog" style="background:var(--log-bg);border:1px solid var(--border);border-radius:8px;padding:14px;max-height:160px;overflow-y:auto;font-size:.78rem;line-height:1.9;color:var(--text3);"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="card" style="padding:20px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:600;font-size:1rem;margin-bottom:14px;">最新威胁</div>
+        <div class="empty-hint">暂无威胁数据</div>
+      </div>
+      <div class="card" style="padding:20px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:600;font-size:1rem;margin-bottom:14px;">客户扫描进度</div>
+        <div class="empty-hint">暂无扫描任务</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 任务管理 -->
+  <div class="page" id="page-tasks">
+    <div class="stats-grid">
+      <div class="stat-card c-yellow"><div class="stat-label">待执行</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">排队等待中</div></div>
+      <div class="stat-card c-cyan"><div class="stat-label">执行中</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">正在扫描</div></div>
+      <div class="stat-card c-accent"><div class="stat-label">已完成</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">本周完成</div></div>
+      <div class="stat-card c-red"><div class="stat-label">异常</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">需要处理</div></div>
+    </div>
+    <div class="card" style="padding:28px;margin-bottom:24px;">
+      <div class="section-title"><span class="section-dot"></span> 快速创建任务</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="form-group"><label class="form-label">选择客户</label><div class="client-chips" id="taskClientChips"></div></div>
+          <div class="form-group"><label class="form-label">任务名称</label><input class="form-input" id="taskName" placeholder="例：全站暗链深度扫描"></div>
+          <div class="form-group"><label class="form-label">目标 URL</label><input class="form-input" id="taskTarget" placeholder="https://example.com"></div>
+          <div class="form-row"><div class="form-group"><label class="form-label">优先级</label><select class="form-select" id="taskPriority"><option value="critical">紧急</option><option value="high">高</option><option value="normal" selected>普通</option></select></div><div class="form-group"><label class="form-label">截止时间</label><input class="form-input" type="datetime-local"></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="form-group"><label class="form-label">扫描模式</label><div class="form-chips"><button class="form-chip active" onclick="this.classList.toggle('active')">深度爬取</button><button class="form-chip active" onclick="this.classList.toggle('active')">JS 渲染</button><button class="form-chip" onclick="this.classList.toggle('active')">混淆分析</button></div></div>
+          <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="taskNotes" placeholder="可选..."></textarea></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:auto"><button class="btn btn-secondary" onclick="el('taskName').value='';el('taskTarget').value='';showToast('已重置')">重置</button><button class="btn btn-primary" onclick="createTask()" style="flex:1;max-width:200px">创建任务</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-title"><span class="section-dot"></span> 已创建任务</div>
+    <div class="batch-bar" id="taskBatchBar">
+      <span class="batch-bar-text" id="taskBatchText">已选中 0 个任务</span>
+      <button class="btn btn-secondary btn-sm" onclick="clearTaskSelection()">取消选择</button>
+      <button class="btn btn-danger-solid" onclick="openBatchDeleteModal()">批量删除</button>
+    </div>
+    <div class="card" style="overflow:hidden"><table style="width:100%;border-collapse:collapse"><thead><tr>
+      <th style="width:40px;text-align:center"><input type="checkbox" class="task-checkbox" id="taskSelectAll" onchange="toggleSelectAll(this)"></th>
+      <th>任务名称</th><th>客户</th><th>目标</th><th>状态</th><th>优先级</th><th>创建时间</th>
+    </tr></thead><tbody id="taskBody"></tbody></table></div>
+  </div>
+
+  <!-- 3. 批量扫描 -->
+  <div class="page" id="page-batch">
+    <div class="card" style="padding:28px;margin-bottom:24px">
+      <div class="section-title"><span class="section-dot"></span> 批量扫描</div>
+      <p style="color:var(--text3);font-size:.9rem;margin-bottom:20px;line-height:1.7">支持一次提交多个目标进行并行扫描。每行一个 URL。</p>
+      <div class="form-group" style="margin-bottom:18px"><label class="form-label">目标列表</label><textarea class="form-textarea" id="batchInput" placeholder="https://site-a.com&#10;https://site-b.com&#10;https://site-c.com/path" style="min-height:120px"></textarea></div>
+      <div style="display:flex;gap:16px;margin-bottom:18px">
+        <div class="form-group" style="flex:1"><label class="form-label">关联客户</label><select class="form-select" id="batchClientSelect"><option value="">-- 选择客户 --</option></select></div>
+        <div class="form-group" style="flex:1"><label class="form-label">并发数</label><select class="form-select"><option>3 个并发</option><option selected>5 个并发</option><option>10 个并发</option></select></div>
+      </div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:22px">
+        <label class="option-toggle"><input type="checkbox" checked><span class="toggle-track"></span> 深度爬取</label>
+        <label class="option-toggle"><input type="checkbox" checked><span class="toggle-track"></span> JS 渲染</label>
+      </div>
+      <div style="display:flex;gap:12px"><button class="btn btn-primary" onclick="startBatch()">启动批量扫描</button><button class="btn btn-secondary">导入 CSV</button></div>
+    </div>
+    <div class="section-title"><span class="section-dot"></span> 批量任务进度</div>
+    <div class="card" style="overflow:hidden"><table style="width:100%;border-collapse:collapse"><thead><tr><th>目标</th><th>客户</th><th>状态</th><th>进度</th><th>威胁</th></tr></thead><tbody id="batchBody"><tr><td colspan="5"><div class="empty-hint">暂无批量任务</div></td></tr></tbody></table></div>
+  </div>
+
+  <!-- 4. 扫描历史 -->
+  <div class="page" id="page-history">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="section-title" style="margin-bottom:0"><span class="section-dot"></span> 扫描历史</div>
+      <div style="display:flex;gap:10px;align-items:center"><div class="filter-pills"><button class="filter-pill active" onclick="filterHistory('all')">全部</button><button class="filter-pill" onclick="filterHistory('high')">高危</button><button class="filter-pill" onclick="filterHistory('mid')">中危</button><button class="filter-pill" onclick="filterHistory('safe')">安全</button></div><select class="form-select" id="historyClientFilter" style="width:140px;padding:5px 32px 5px 12px;font-size:.78rem"><option>全部客户</option></select><button class="btn btn-danger" id="deleteSelectedHistoryBtn" onclick="deleteSelectedHistoryRecords()" disabled>删除选中</button><button class="btn btn-danger" onclick="clearHistoryRecords()">清空历史</button></div>
+    </div>
+    <div class="card" style="overflow:hidden"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="width:44px;text-align:center"><input type="checkbox" id="historySelectAll"></th><th>扫描目标</th><th>客户</th><th>可疑链接</th><th>高危</th><th>耗时</th><th>时间</th><th>操作</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+  </div>
+
+  <!-- 5. 实时监控 -->
+  <div class="page" id="page-monitor">
+    <div class="stats-grid">
+      <div class="stat-card c-cyan"><div class="stat-label">在线任务</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">实时运行中</div></div>
+      <div class="stat-card c-red"><div class="stat-label">实时告警</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">最近 1 小时</div></div>
+      <div class="stat-card c-accent"><div class="stat-label">已扫描页面</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">今日累计</div></div>
+      <div class="stat-card c-yellow"><div class="stat-label">引擎负载</div><div class="stat-value" data-target="0" data-format="pct">0%</div><div class="stat-sub">CPU / 内存</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="card" style="padding:22px">
+        <div style="font-family:'Syne',sans-serif;font-weight:600;font-size:1rem;margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--cyan);animation:blink 1.5s ease infinite"></span> 实时扫描日志</div>
+        <div id="liveLog" style="background:var(--log-bg);border:1px solid var(--border);border-radius:8px;padding:14px;height:280px;overflow-y:auto;font-size:.78rem;line-height:2;color:var(--text3)"></div>
+      </div>
+      <div class="card" style="padding:22px">
+        <div style="font-family:'Syne',sans-serif;font-weight:600;font-size:1rem;margin-bottom:14px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1s ease infinite"></span> 实时告警流</div>
+        <div id="alertStream" style="display:flex;flex-direction:column;gap:10px;max-height:290px;overflow-y:auto">
+          <div class="empty-hint">暂无告警</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:22px">
+      <div style="font-family:'Syne',sans-serif;font-weight:600;font-size:1rem;margin-bottom:16px">引擎资源监控</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.78rem;color:var(--text3)">CPU</span><span style="font-size:.78rem;color:var(--cyan)">0%</span></div><div class="progress-track"><div class="progress-fill" style="width:0%"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.78rem;color:var(--text3)">内存</span><span style="font-size:.78rem;color:var(--yellow)">0%</span></div><div class="progress-track"><div class="progress-fill" style="width:0%;background:var(--yellow)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.78rem;color:var(--text3)">磁盘</span><span style="font-size:.78rem;color:var(--accent)">0%</span></div><div class="progress-track"><div class="progress-fill" style="width:0%"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.78rem;color:var(--text3)">网络 I/O</span><span style="font-size:.78rem;color:var(--purple)">0 MB/s</span></div><div class="progress-track"><div class="progress-fill" style="width:0%;background:var(--purple)"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 客户列表 -->
+  <div class="page" id="page-clients">
+    <div class="client-page-head"><div class="section-title" style="margin-bottom:0"><span class="section-dot"></span> 客户列表</div><button class="btn btn-primary" onclick="openAddClientModal()">+ 新增客户</button></div>
+    <div class="client-grid" id="clientCards"></div>
+  </div>
+
+  <!-- 7. 威胁报告 -->
+  <div class="page" id="page-report">
+    <div class="stats-grid">
+      <div class="stat-card c-red"><div class="stat-label">严重威胁</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">本月累计</div></div>
+      <div class="stat-card c-yellow"><div class="stat-label">高危威胁</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">本月累计</div></div>
+      <div class="stat-card c-cyan"><div class="stat-label">中危威胁</div><div class="stat-value" data-target="0" data-format="num">0</div><div class="stat-sub">本月累计</div></div>
+      <div class="stat-card c-accent"><div class="stat-label">威胁类型</div><div class="stat-value" style="font-size:.82rem;line-height:1.6;font-weight:500">暂无数据</div><div class="stat-sub">本月统计</div></div>
+    </div>
+    <div class="section-title"><span class="section-dot"></span> 威胁详情</div>
+    <div class="card" style="overflow:hidden"><table style="width:100%;border-collapse:collapse"><thead><tr><th>威胁 URL</th><th>类型</th><th>客户</th><th>风险</th><th>来源</th><th>时间</th></tr></thead><tbody id="threatBody"></tbody></table></div>
+  </div>
+
+  <!-- 8. 引擎配置 -->
+  <div class="page" id="page-settings">
+    <div class="section-title"><span class="section-dot"></span> 引擎配置</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card" style="padding:24px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-bottom:20px">扫描引擎</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="form-group"><label class="form-label">默认并发数</label><select class="form-select"><option>3</option><option selected>5</option><option>10</option><option>20</option></select></div>
+          <div class="form-group"><label class="form-label">请求超时 (秒)</label><input class="form-input" type="number" value="30"></div>
+          <div class="form-group"><label class="form-label">最大爬取深度</label><input class="form-input" type="number" value="5"></div>
+          <div class="form-group"><label class="form-label">User-Agent</label><input class="form-input" value="LinkRecon/2.4.1"></div>
+          <label class="option-toggle"><input type="checkbox" checked><span class="toggle-track"></span> 启用 JS 渲染</label>
+          <label class="option-toggle"><input type="checkbox" checked><span class="toggle-track"></span> 自动重试失败请求</label>
+        </div>
+      </div>
+      <div class="card" style="padding:24px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-bottom:20px">通知设置</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <label class="option-toggle"><input type="checkbox" checked><span class="toggle-track"></span> 高危威胁邮件通知</label>
+          <label class="option-toggle"><input type="checkbox"><span class="toggle-track"></span> Webhook 通知</label>
+          <div class="form-group"><label class="form-label">通知邮箱</label><input class="form-input" type="email" placeholder="admin@example.com"></div>
+          <div class="form-group"><label class="form-label">Webhook URL</label><input class="form-input" placeholder="https://hooks.example.com/..."></div>
+        </div>
+      </div>
+      <div class="card" style="padding:24px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;margin-bottom:20px">系统信息</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:.88rem">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-l)"><span style="color:var(--text3)">版本</span><span style="font-weight:600">v2.4.1</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-l)"><span style="color:var(--text3)">上次更新</span><span>2026-05-28</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-l)"><span style="color:var(--text3)">引擎状态</span><span style="color:var(--accent)">运行中</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="color:var(--text3)">总扫描数</span><span style="font-weight:600">0</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 新增客户弹窗 -->
+<div class="modal-overlay" id="addClientModal">
+  <div class="modal-box">
+    <div class="modal-icon">◉</div>
+    <div class="modal-title">新增客户</div>
+    <div class="modal-desc" style="margin-bottom:20px">填写客户基本信息，创建后可在任务管理中关联此客户。</div>
+    <div style="display:flex;flex-direction:column;gap:16px;text-align:left">
+      <div class="form-group">
+        <label class="form-label">客户名称 *</label>
+        <input class="form-input" id="clientName"  maxlength="20">
+      </div>
+      <div class="form-group">
+        <label class="form-label">关联域名</label>
+        <input class="form-input" id="clientDomain" placeholder="例：xingchen.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">联系人</label>
+        <input class="form-input" id="clientContact" placeholder="例：张经理">
+      </div>
+      <div class="form-group">
+        <label class="form-label">客户标识图标</label>
+        <div class="client-icon-picks" id="iconPicks"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">标识颜色</label>
+        <div class="client-color-picks" id="colorPicks"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <textarea class="form-textarea" id="clientNotes" placeholder="可选，记录客户的特殊需求或注意事项..." style="min-height:60px"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:22px">
+      <button class="btn btn-secondary" onclick="closeAddClientModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveClient()">确认添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量删除确认弹窗 -->
+<div class="modal-overlay" id="batchDeleteModal">
+  <div class="modal-box">
+    <div class="modal-icon" style="background:var(--red-g);color:var(--red)">✕</div>
+    <div class="modal-title">确认批量删除</div>
+    <div class="modal-desc" id="batchDeleteDesc">此操作将删除选中的任务，删除后不可恢复。</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeBatchDeleteModal()">取消</button>
+      <button class="btn btn-primary" style="background:var(--red)" onclick="confirmBatchDelete()">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+function el(id){return document.getElementById(id)}
+
+var h=document.documentElement,s=localStorage.getItem('lr-theme');
+h.setAttribute('data-theme',s||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
+el('themeToggle').onclick=function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);localStorage.setItem('lr-theme',n)};
+
+function updateClock(){var n=new Date(),p=function(x){return String(x).padStart(2,'0')};el('clock').textContent=n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+' '+p(n.getHours())+':'+p(n.getMinutes())+':'+p(n.getSeconds())}
+setInterval(updateClock,1000);updateClock();
+
+function showToast(m,t){var c=el('toastContainer'),d=document.createElement('div');d.className='toast'+(t==='error'?' error':'');d.innerHTML='<span style="font-weight:700">'+(t==='error'?'✕':'✓')+'</span> '+m;c.appendChild(d);setTimeout(function(){d.remove()},3500)}
+
+function animateCounters(container){
+  var targets=container.querySelectorAll('.stat-value[data-target]');
+  targets.forEach(function(v){
+    var target=parseFloat(v.getAttribute('data-target')),fmt=v.getAttribute('data-format'),duration=900,startTime=null;
+    function step(ts){if(!startTime)startTime=ts;var progress=Math.min((ts-startTime)/duration,1),eased=1-Math.pow(1-progress,3),current=eased*target;if(fmt==='num')v.textContent=Math.floor(current).toLocaleString();else if(fmt==='sec')v.textContent=current.toFixed(1)+'s';else if(fmt==='pct')v.textContent=Math.floor(current)+'%';if(progress<1)requestAnimationFrame(step)}
+    v.style.opacity='1';v.style.animation='none';requestAnimationFrame(step)
+  })
+}
+
+var titles={dashboard:'扫描控制台',tasks:'任务管理',batch:'批量扫描',history:'扫描历史',monitor:'实时监控',clients:'客户列表',report:'威胁报告',settings:'引擎配置'};
+var actions={dashboard:'导出报告',tasks:'+ 新建任务',batch:'导入 CSV',history:'导出 CSV',monitor:'暂停监控',clients:'+ 新增客户',report:'导出报告',settings:'保存配置'};
+
+var currentPage='dashboard';
+
+document.querySelectorAll('.nav-item[data-page]').forEach(function(i){i.onclick=function(){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+  var pg=i.getAttribute('data-page'),t=el('page-'+pg);
+  if(t){t.classList.add('active');t.style.animation='none';t.offsetHeight;t.style.animation='fadeUp .4s ease forwards'}
+  i.classList.add('active');el('pageTitle').textContent=titles[pg]||'';el('topbarAction').textContent=actions[pg]||'';
+  currentPage=pg;
+  if(t)animateCounters(t);
+  scrollTo({top:0,behavior:'smooth'})}
+});
+
+el('topbarAction').onclick=function(){
+  if(currentPage==='clients'){openAddClientModal()}
+};
+
+/* ====== 客户管理 ====== */
+var clients=[];
+var clientIconOptions=['X','K','L','R','A','B','C','D','E','F','G','H','J','M','N','P','Q','S','T','W'];
+var clientColorOptions=[
+  {key:'accent',label:'绿'},
+  {key:'cyan',label:'青'},
+  {key:'purple',label:'紫'},
+  {key:'yellow',label:'黄'}
+];
+var selectedClientIcon='X';
+var selectedClientColor='accent';
+
+(function(){
+  var iconContainer=el('iconPicks');
+  clientIconOptions.forEach(function(icon){
+    var btn=document.createElement('div');
+    btn.className='client-icon-pick'+(icon===selectedClientIcon?' active':'');
+    btn.textContent=icon;
+    btn.onclick=function(){
+      iconContainer.querySelectorAll('.client-icon-pick').forEach(function(b){b.classList.remove('active')});
+      btn.classList.add('active');
+      selectedClientIcon=icon;
+    };
+    iconContainer.appendChild(btn);
+  });
+})();
+
+(function(){
+  var colorContainer=el('colorPicks');
+  clientColorOptions.forEach(function(c){
+    var btn=document.createElement('div');
+    btn.className='client-color-pick'+(c.key===selectedClientColor?' active':'');
+    btn.style.background='var(--'+c.key+')';
+    btn.title=c.label;
+    btn.onclick=function(){
+      colorContainer.querySelectorAll('.client-color-pick').forEach(function(b){b.classList.remove('active')});
+      btn.classList.add('active');
+      selectedClientColor=c.key;
+    };
+    colorContainer.appendChild(btn);
+  });
+})();
+
+/* 同步所有依赖客户的UI */
+function syncClientUI(){
+  renderClientChips();
+  renderBatchClientSelect();
+  renderHistoryClientFilter();
+}
+
+/* 任务管理 - 动态渲染客户选择 */
+var selectedTaskClientId=null;
+
+function renderClientChips(){
+  var container=el('taskClientChips');
+  if(clients.length===0){
+    container.innerHTML='<span style="font-size:.82rem;color:var(--text4)">暂无客户，请先在客户列表中添加</span>';
+    selectedTaskClientId=null;
+    return;
+  }
+  var colorKeys=['cc-a','cc-b','cc-c','cc-d'];
+  var h='';
+  clients.forEach(function(c,i){
+    var ck=colorKeys[i%colorKeys.length];
+    var activeClass=selectedTaskClientId===c.id?' active':'';
+    h+='<button class="client-chip '+ck+activeClass+'" data-client-id="'+c.id+'" onclick="selTaskClient(this,'+c.id+')"><span class="chip-dot"></span> '+c.name+'</button>';
+  });
+  container.innerHTML=h;
+  /* 如果已选中的客户被删除了，清除选中 */
+  if(selectedTaskClientId){
+    var found=false;
+    clients.forEach(function(c){if(c.id===selectedTaskClientId)found=true});
+    if(!found)selectedTaskClientId=null;
+  }
+}
+
+function selTaskClient(btn,id){
+  document.querySelectorAll('#taskClientChips .client-chip').forEach(function(c){c.classList.remove('active')});
+  btn.classList.add('active');
+  selectedTaskClientId=id;
+}
+
+/* 批量扫描 - 动态渲染客户下拉 */
+function renderBatchClientSelect(){
+  var sel=el('batchClientSelect');
+  var val=sel.value;
+  sel.innerHTML='<option value="">-- 选择客户 --</option>';
+  clients.forEach(function(c){
+    var opt=document.createElement('option');
+    opt.value=c.name;
+    opt.textContent=c.name;
+    sel.appendChild(opt);
+  });
+  sel.value=val;
+}
+
+/* 扫描历史 - 动态渲染客户筛选 */
+function renderHistoryClientFilter(){
+  var sel=el('historyClientFilter');
+  var val=sel.value;
+  sel.innerHTML='<option>全部客户</option>';
+  clients.forEach(function(c){
+    var opt=document.createElement('option');
+    opt.textContent=c.name;
+    sel.appendChild(opt);
+  });
+  sel.value=val;
+}
+
+function openAddClientModal(){
+  el('clientName').value='';
+  el('clientDomain').value='';
+  el('clientContact').value='';
+  el('clientNotes').value='';
+  selectedClientIcon='X';
+  selectedClientColor='accent';
+  el('iconPicks').querySelectorAll('.client-icon-pick').forEach(function(b,i){b.classList.toggle('active',i===0)});
+  el('colorPicks').querySelectorAll('.client-color-pick').forEach(function(b,i){b.classList.toggle('active',i===0)});
+  el('addClientModal').classList.add('show');
+}
+
+function closeAddClientModal(){
+  el('addClientModal').classList.remove('show');
+}
+
+el('addClientModal').onclick=function(e){if(e.target===el('addClientModal'))closeAddClientModal()};
+
+function saveClient(){
+  var name=el('clientName').value.trim();
+  var domain=el('clientDomain').value.trim();
+  var contact=el('clientContact').value.trim();
+  var notes=el('clientNotes').value.trim();
+
+  if(!name){
+    showToast('请填写客户名称','error');
+    el('clientName').style.borderColor='var(--red)';
+    setTimeout(function(){el('clientName').style.borderColor=''},1500);
+    el('clientName').focus();
+    return;
+  }
+
+  var dup=false;
+  clients.forEach(function(c){if(c.name===name)dup=true});
+  if(dup){
+    showToast('客户「'+name+'」已存在','error');
+    el('clientName').style.borderColor='var(--red)';
+    setTimeout(function(){el('clientName').style.borderColor=''},1500);
+    el('clientName').focus();
+    return;
+  }
+
+  clients.push({
+    id:Date.now(),
+    name:name,
+    domain:domain||'未设置',
+    contact:contact||'--',
+    notes:notes,
+    icon:selectedClientIcon,
+    color:selectedClientColor,
+    scans:0,
+    threats:0,
+    active:0
+  });
+
+  closeAddClientModal();
+  renderClients();
+  syncClientUI();
+  showToast('客户「'+name+'」添加成功');
+}
+
+function renderClients(){
+  if(clients.length===0){
+    el('clientCards').innerHTML='<div class="client-empty"><div class="empty-title">暂无客户资产</div><div class="empty-sub">添加客户后可关联扫描任务、沉淀风险记录和资产状态。</div></div>';
+    return;
+  }
+  var h='';
+  clients.forEach(function(c){
+    var colorKey=c.color||'accent';
+    var note=c.notes||'暂无备注';
+    h+='<div class="client-card" style="--client-color:var(--'+colorKey+');--client-soft:var(--'+colorKey+'-g)">'
+      +'<div class="client-card-inner">'
+      +'<div class="client-card-top">'
+      +'<div class="client-avatar">'+esc(c.icon||'C')+'</div>'
+      +'<div class="client-main">'
+      +'<div class="client-title-row"><div class="client-name">'+esc(c.name)+'</div><span class="client-status">active</span></div>'
+      +'<div class="client-domain">'+esc(c.domain||'未设置')+'</div>'
+      +'</div>'
+      +'<div class="client-actions">'
+      +'<button class="client-action-btn" onclick="editClient('+c.id+')" title="编辑">编辑</button>'
+      +'<button class="client-action-btn danger" onclick="deleteClient('+c.id+')" title="删除">删除</button>'
+      +'</div>'
+      +'</div>'
+      +'<div class="client-metrics">'
+      +'<div class="client-metric" style="--metric-color:var(--accent)"><div class="client-metric-label">累计扫描</div><div class="client-metric-value">'+Number(c.scans||0).toLocaleString()+'</div></div>'
+      +'<div class="client-metric" style="--metric-color:var(--red)"><div class="client-metric-label">发现威胁</div><div class="client-metric-value">'+Number(c.threats||0).toLocaleString()+'</div></div>'
+      +'<div class="client-metric" style="--metric-color:var(--cyan)"><div class="client-metric-label">活跃任务</div><div class="client-metric-value">'+Number(c.active||0).toLocaleString()+'</div></div>'
+      +'</div>'
+      +'<div class="client-footer">'
+      +'<div class="client-contact"><span class="client-contact-dot"></span><span>联系人：'+esc(c.contact||'--')+'</span></div>'
+      +'<div class="client-note" title="'+esc(note)+'">'+esc(note)+'</div>'
+      +'</div>'
+      +'</div>'
+      +'</div>';
+  });
+  el('clientCards').innerHTML=h;
+}
+
+function deleteClient(id){
+  var target=null;
+  clients.forEach(function(c){if(c.id===id)target=c});
+  if(!target)return;
+  if(!confirm('确认删除客户「'+target.name+'」？删除后不可恢复。'))return;
+  clients=clients.filter(function(c){return c.id!==id});
+  renderClients();
+  syncClientUI();
+  showToast('已删除客户「'+target.name+'」');
+}
+
+function editClient(id){
+  var target=null;
+  clients.forEach(function(c){if(c.id===id)target=c});
+  if(!target)return;
+  el('clientName').value=target.name;
+  el('clientDomain').value=target.domain==='未设置'?'':target.domain;
+  el('clientContact').value=target.contact==='--'?'':target.contact;
+  el('clientNotes').value=target.notes||'';
+  selectedClientIcon=target.icon;
+  el('iconPicks').querySelectorAll('.client-icon-pick').forEach(function(b){
+    b.classList.toggle('active',b.textContent===target.icon);
+  });
+  selectedClientColor=target.color;
+  el('colorPicks').querySelectorAll('.client-color-pick').forEach(function(b){
+    b.classList.toggle('active',b.title===({accent:'绿',cyan:'青',purple:'紫',yellow:'黄'}[target.color]));
+  });
+  el('addClientModal').classList.add('show');
+  var saveBtn=el('addClientModal').querySelector('.modal-actions .btn-primary');
+  saveBtn.textContent='保存修改';
+  saveBtn.onclick=function(){
+    var name=el('clientName').value.trim();
+    if(!name){showToast('请填写客户名称','error');return}
+    var dup=false;
+    clients.forEach(function(c){if(c.name===name&&c.id!==id)dup=true});
+    if(dup){showToast('客户「'+name+'」名称冲突','error');return}
+    target.name=name;
+    target.domain=el('clientDomain').value.trim()||'未设置';
+    target.contact=el('clientContact').value.trim()||'--';
+    target.notes=el('clientNotes').value.trim();
+    target.icon=selectedClientIcon;
+    target.color=selectedClientColor;
+    closeAddClientModal();
+    saveBtn.textContent='确认添加';
+    saveBtn.onclick=saveClient;
+    renderClients();
+    syncClientUI();
+    showToast('客户「'+name+'」已更新');
+  };
+}
+
+/* ====== 任务管理 ====== */
+var allTasks=[];
+var ccColorMap={};
+
+function getTaskTag(clientName){
+  return ccColorMap[clientName]||'cc-a';
+}
+
+function renderTasks(){
+  if(allTasks.length===0){el('taskBody').innerHTML='<tr><td colspan="7"><div class="empty-hint">暂无任务，请先创建</div></td></tr>';el('taskSelectAll').checked=false;updateBatchBar();return}
+  var sM={pending:['待执行','var(--yellow)'],running:['执行中','var(--cyan)'],done:['已完成','var(--accent)'],error:['异常','var(--red)']},
+      pM={critical:['紧急','var(--red)'],high:['高','var(--yellow)'],normal:['普通','var(--accent)']},
+      tM={'cc-a':'safe','cc-b':'info','cc-c':'purple','cc-d':'warning'},h='';
+  allTasks.forEach(function(t){
+    h+='<tr data-task-id="'+t.id+'">'
+     +'<td style="text-align:center;width:40px"><input type="checkbox" class="task-checkbox task-row-cb" data-id="'+t.id+'" onchange="updateBatchBar()"></td>'
+     +'<td style="font-weight:500">'+t.name+'</td>'
+     +'<td><span class="tag tag-'+(tM[t.tag]||'safe')+'">'+t.client+'</span></td>'
+     +'<td style="color:var(--cyan);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.url+'</td>'
+     +'<td style="color:'+sM[t.status][1]+';font-weight:500">'+sM[t.status][0]+'</td>'
+     +'<td style="color:'+pM[t.priority][1]+';font-weight:500">'+pM[t.priority][0]+'</td>'
+     +'<td style="color:var(--text4)">'+t.created+'</td></tr>'
+  });
+  el('taskBody').innerHTML=h;
+  el('taskSelectAll').checked=false;
+  updateBatchBar()
+}
+
+function createTask(){
+  var n=el('taskName').value.trim(),t=el('taskTarget').value.trim();
+  if(!n||!t){showToast('请填写完整信息','error');return}
+  var cl='未知',tag='cc-a';
+  if(selectedTaskClientId){
+    var found=null;
+    clients.forEach(function(c){if(c.id===selectedTaskClientId)found=c});
+    if(found){
+      cl=found.name;
+      /* 动态分配颜色 */
+      var colorKeys=['cc-a','cc-b','cc-c','cc-d'];
+      if(!ccColorMap[found.name]){
+        var idx=Object.keys(ccColorMap).length%colorKeys.length;
+        ccColorMap[found.name]=colorKeys[idx];
+      }
+      tag=ccColorMap[found.name];
+    }
+  }
+  var d=new Date(),ts=[d.getHours(),d.getMinutes()].map(function(x){return String(x).padStart(2,'0')}).join(':');
+  allTasks.unshift({id:Date.now(),name:n,client:cl,tag:tag,url:t,status:'pending',priority:el('taskPriority').value,created:'今天 '+ts});
+  renderTasks();el('taskName').value='';el('taskTarget').value='';showToast('任务「'+n+'」已创建')
+}
+
+function toggleSelectAll(cb){
+  document.querySelectorAll('.task-row-cb').forEach(function(c){c.checked=cb.checked});
+  updateBatchBar()
+}
+
+function updateBatchBar(){
+  var checked=document.querySelectorAll('.task-row-cb:checked');
+  var count=checked.length;
+  var bar=el('taskBatchBar');
+  if(count>0){bar.classList.add('show');el('taskBatchText').textContent='已选中 '+count+' 个任务'}
+  else{bar.classList.remove('show')}
+  var all=document.querySelectorAll('.task-row-cb');
+  el('taskSelectAll').checked=all.length>0&&count===all.length
+}
+
+function clearTaskSelection(){
+  document.querySelectorAll('.task-row-cb').forEach(function(c){c.checked=false});
+  el('taskSelectAll').checked=false;
+  updateBatchBar()
+}
+
+function openBatchDeleteModal(){
+  var count=document.querySelectorAll('.task-row-cb:checked').length;
+  el('batchDeleteDesc').textContent='即将删除选中的 '+count+' 个任务，删除后不可恢复。';
+  el('batchDeleteModal').classList.add('show')
+}
+function closeBatchDeleteModal(){el('batchDeleteModal').classList.remove('show')}
+
+function confirmBatchDelete(){
+  var checked=document.querySelectorAll('.task-row-cb:checked');
+  var ids=[];
+  checked.forEach(function(c){ids.push(parseInt(c.getAttribute('data-id')))});
+  allTasks=allTasks.filter(function(t){return ids.indexOf(t.id)===-1});
+  closeBatchDeleteModal();
+  renderTasks();
+  showToast('已成功删除 '+ids.length+' 个任务')
+}
+
+el('batchDeleteModal').onclick=function(e){if(e.target===el('batchDeleteModal'))closeBatchDeleteModal()};
+
+/* ====== 扫描历史 ====== */
+var histData=[];
+var historySelected={};
+var currentFilter='all';
+function renderHistory(){
+  if(histData.length===0){el('historyBody').innerHTML='<tr><td colspan="7"><div class="empty-hint">暂无扫描记录</div></td></tr>';return}
+  var tM={'cc-a':'safe','cc-b':'info','cc-c':'purple','cc-d':'warning'},h='';
+  histData.filter(function(r){if(currentFilter==='high')return r.high>=5;if(currentFilter==='mid')return r.high>0&&r.high<5;if(currentFilter==='safe')return r.high===0;return true}).forEach(function(r){
+    var hc=r.high>5?'var(--red)':r.high>0?'var(--yellow)':'var(--accent)';
+    h+='<tr><td style="color:var(--cyan)">'+r.url+'</td><td><span class="tag tag-'+(tM[r.tag]||'safe')+'">'+r.client+'</span></td><td>'+r.links+'</td><td style="color:'+hc+';font-weight:600">'+r.high+'</td><td style="color:var(--text3)">'+r.time+'</td><td style="color:var(--text4)">'+r.date+'</td><td><button class="btn btn-secondary btn-sm">查看</button></td></tr>'
+  });el('historyBody').innerHTML=h
+}
+function filterHistory(level){currentFilter=level;document.querySelectorAll('.filter-pill').forEach(function(p){p.classList.remove('active')});event.target.classList.add('active');renderHistory()}
+
+/* ====== 扫描 ====== */
+var scanning=false;
+function startScan(){
+  if(scanning)return;var url=el('scanInput').value.trim();
+  if(!url){el('scanInput').style.borderColor='var(--red)';setTimeout(function(){el('scanInput').style.borderColor=''},1500);return}
+  scanning=true;el('scanBtn').textContent='扫描中...';el('scanProgress').style.display='block';
+  var steps=[{p:8,m:'连接目标服务器...',ok:1},{p:15,m:'DNS 解析完成',ok:1},{p:22,m:'获取 robots.txt',ok:1},{p:30,m:'开始深度爬取...',ok:1},{p:38,m:'分析页面结构...',ok:1},{p:45,m:'检测隐藏标签...',ok:1},{p:52,m:'扫描外部资源引用...',ok:1},{p:60,m:'分析可疑代码...',ok:1},{p:70,m:'提取关联域名...',ok:1},{p:82,m:'生成风险评估...',ok:1},{p:92,m:'生成扫描报告...',ok:1},{p:100,m:'扫描完成 ✓',ok:1}],i=0;
+  var iv=setInterval(function(){
+    if(i<steps.length){var s=steps[i],n=new Date(),ts=[n.getHours(),n.getMinutes(),n.getSeconds()].map(function(x){return String(x).padStart(2,'0')}).join(':');
+      el('progressFill').style.width=s.p+'%';el('progressPct').textContent=s.p+'%';el('progressLabel').textContent=s.m;
+      el('progressLog').innerHTML+='<div style="display:flex;gap:12px"><span style="color:var(--text4);min-width:68px">'+ts+'</span><span style="color:'+(s.ok?'var(--accent)':'var(--red)')+'">'+s.m+'</span></div>';
+      el('progressLog').scrollTop=el('progressLog').scrollHeight;i++}
+    else{
+      clearInterval(iv);scanning=false;el('scanBtn').textContent='重新扫描';el('progressLabel').textContent='扫描完成';
+      var scanUrl=el('scanInput').value.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
+      var scanClient='未关联';var scanTag='cc-a';
+      var d=new Date(),ts=[d.getHours(),d.getMinutes(),d.getSeconds()].map(function(x){return String(x).padStart(2,'0')}).join(':');
+      var dateStr=(d.getMonth()+1)+'-'+String(d.getDate()).padStart(2,'0')+' '+ts;
+      histData.unshift({url:scanUrl,client:scanClient,tag:scanTag,links:0,high:0,time:'0.0s',date:dateStr});
+      renderHistory()
+    }
+  },650)
+}
+el('scanInput').onkeydown=function(e){if(e.key==='Enter')startScan()};
+
+/* ====== 实时监控 ====== */
+var liveMsgs=[];
+var liveIdx=0;
+setInterval(function(){
+  if(liveMsgs.length===0)return;
+  var g=el('liveLog');if(!g)return;var s=liveMsgs[liveIdx%liveMsgs.length],n=new Date(),ts=[n.getHours(),n.getMinutes(),n.getSeconds()].map(function(x){return String(x).padStart(2,'0')}).join(':');
+  g.innerHTML+='<div style="display:flex;gap:10px"><span style="color:var(--text4);min-width:62px">'+ts+'</span><span style="color:'+(s.ok?'var(--accent)':'var(--red)')+'">'+s.m+'</span></div>';
+  g.scrollTop=g.scrollHeight;if(g.children.length>50)g.removeChild(g.firstElementChild);liveIdx++
+},1800);
+
+/* ====== 威胁报告 ====== */
+var threats=[];
+function renderThreats(){
+  if(threats.length===0){el('threatBody').innerHTML='<tr><td colspan="6"><div class="empty-hint">暂无威胁记录</div></td></tr>';return}
+  var h='';threats.forEach(function(r){h+='<tr><td style="color:var(--cyan)">'+r.url+'</td><td><span class="tag tag-'+r.tag+'">'+r.type+'</span></td><td>'+r.client+'</td><td style="color:'+r.rc+';font-weight:600">'+r.risk+'</td><td style="color:var(--text3)">'+r.src+'</td><td style="color:var(--text4)">'+r.t+'</td></tr>'});
+  el('threatBody').innerHTML=h
+}
+
+function startBatch(){var v=el('batchInput').value.trim();if(!v){showToast('请输入扫描目标','error');return}showToast('已提交 '+v.split('\n').filter(function(l){return l.trim()}).length+' 个目标，开始并行扫描')}
+
+/* ====== Flask backend bridge ====== */
+var latestReportUrl='';
+
+function apiPost(path,payload){
+  return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload||{})})
+    .then(function(r){return r.json().then(function(data){if(!r.ok||data.ok===false){throw new Error(data.error||('HTTP '+r.status))}return data})});
+}
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});
+}
+
+function jsArg(v){
+  return String(v==null?'':v).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+function riskNum(v){
+  if(typeof v==='number')return v;
+  var s=String(v||'').toLowerCase();
+  if(s.indexOf('high')>=0||s.indexOf('critical')>=0||s.indexOf('高')>=0)return 8;
+  if(s.indexOf('mid')>=0||s.indexOf('medium')>=0||s.indexOf('中')>=0)return 5;
+  if(s.indexOf('low')>=0||s.indexOf('低')>=0)return 2;
+  var n=parseInt(s,10);
+  return isNaN(n)?0:n;
+}
+
+function durationSeconds(s){
+  var text=String(s||'0'),parts=text.split(':').map(function(x){return parseFloat(x)||0});
+  if(parts.length===3)return parts[0]*3600+parts[1]*60+parts[2];
+  if(parts.length===2)return parts[0]*60+parts[1];
+  return parseFloat(text)||0;
+}
+
+function setProgress(p,m,ok){
+  el('scanProgress').style.display='block';
+  el('progressFill').style.width=p+'%';
+  el('progressPct').textContent=p+'%';
+  el('progressLabel').textContent=m;
+  var n=new Date(),ts=[n.getHours(),n.getMinutes(),n.getSeconds()].map(function(x){return String(x).padStart(2,'0')}).join(':');
+  el('progressLog').innerHTML+='<div style="display:flex;gap:12px"><span style="color:var(--text4);min-width:68px">'+ts+'</span><span style="color:'+(ok===false?'var(--red)':'var(--accent)')+'">'+esc(m)+'</span></div>';
+  el('progressLog').scrollTop=el('progressLog').scrollHeight;
+}
+
+function updateDashboard(summary){
+  var vals=el('page-dashboard').querySelectorAll('.stat-value[data-target]');
+  if(vals[0])vals[0].setAttribute('data-target',histData.length);
+  if(vals[1])vals[1].setAttribute('data-target',summary.suspicious_links||0);
+  if(vals[2])vals[2].setAttribute('data-target',summary.high_risk||0);
+  if(vals[3])vals[3].setAttribute('data-target',durationSeconds(summary.duration||0).toFixed(1));
+  animateCounters(el('page-dashboard'));
+}
+
+function openReport(url){
+  if(!url){showToast('No report available','error');return}
+  window.open(url,'_blank');
+}
+
+function resultToThreats(payload,clientName){
+  var result=payload.result||{},out=[],now=(payload.summary&&payload.summary.created_at)||'';
+  (result.suspicious_links||[]).slice(0,100).forEach(function(item){
+    var r=riskNum(item.risk_level);
+    out.push({url:item.link||item.url||'',type:item.type||'suspicious_link',client:clientName||'unassigned',tag:r>=6?'danger':(r>=3?'warning':'info'),risk:String(item.risk_level||r),rc:r>=6?'var(--red)':(r>=3?'var(--yellow)':'var(--cyan)'),src:item.source||item.file_path||'',t:now});
+  });
+  (result.keyword_matches||[]).slice(0,60).forEach(function(item){
+    var r=riskNum(item.weight);
+    out.push({url:item.keyword||'',type:'keyword',client:clientName||'unassigned',tag:r>=7?'danger':(r>=4?'warning':'info'),risk:String(item.weight||r),rc:r>=7?'var(--red)':(r>=4?'var(--yellow)':'var(--cyan)'),src:item.source||'',t:now});
+  });
+  return out;
+}
+
+function applyScanPayload(payload,target,clientName,tag){
+  var s=payload.summary||{};
+  latestReportUrl=s.report_url||latestReportUrl;
+  var d=new Date(),dateStr=(d.getMonth()+1)+'-'+String(d.getDate()).padStart(2,'0')+' '+[d.getHours(),d.getMinutes(),d.getSeconds()].map(function(x){return String(x).padStart(2,'0')}).join(':');
+  histData.unshift({url:s.target||target,client:clientName||'unassigned',tag:tag||'cc-a',links:s.suspicious_links||0,high:s.high_risk||0,time:s.duration||'0:00:00',date:dateStr,report_url:s.report_url||''});
+  threats=resultToThreats(payload,clientName).concat(threats).slice(0,300);
+  renderHistory();
+  renderThreats();
+  updateDashboard(s);
+  liveMsgs.unshift({ok:1,m:'Scan complete: '+(s.target||target)});
+}
+
+function updateHistorySelectionUI(){
+  var ids=histData.map(function(r){return r.id}).filter(Boolean);
+  var selected=ids.filter(function(id){return historySelected[id]});
+  var btn=el('deleteSelectedHistoryBtn');
+  if(btn){btn.disabled=selected.length===0;btn.textContent=selected.length?'删除选中('+selected.length+')':'删除选中'}
+  var all=el('historySelectAll');
+  if(all){all.checked=ids.length>0&&selected.length===ids.length;all.indeterminate=selected.length>0&&selected.length<ids.length}
+}
+
+toggleHistorySelectAll=function(checked){
+  histData.forEach(function(r){if(r.id)historySelected[r.id]=checked});
+  renderHistory();
+};
+
+toggleHistoryRecord=function(id,checked){
+  if(id)historySelected[id]=checked;
+  updateHistorySelectionUI();
+};
+
+renderHistory=function(){
+  if(histData.length===0){el('historyBody').innerHTML='<tr><td colspan="8"><div class="empty-hint">No scan records</div></td></tr>';updateHistorySelectionUI();return}
+  var tM={'cc-a':'safe','cc-b':'info','cc-c':'purple','cc-d':'warning'},h='';
+  histData.filter(function(r){if(currentFilter==='high')return r.high>=5;if(currentFilter==='mid')return r.high>0&&r.high<5;if(currentFilter==='safe')return r.high===0;return true}).forEach(function(r){
+    var hc=r.high>5?'var(--red)':r.high>0?'var(--yellow)':'var(--accent)';
+    h+='<tr><td style="text-align:center;width:44px"><input type="checkbox" class="history-row-cb" data-id="'+esc(r.id||'')+'" '+(historySelected[r.id]?'checked':'')+'></td><td style="color:var(--cyan);word-break:break-all">'+esc(r.url)+'</td><td><span class="tag tag-'+(tM[r.tag]||'safe')+'">'+esc(r.client)+'</span></td><td>'+esc(r.links)+'</td><td style="color:'+hc+';font-weight:600">'+esc(r.high)+'</td><td style="color:var(--text3)">'+esc(r.time)+'</td><td style="color:var(--text4)">'+esc(r.date)+'</td><td><button class="btn btn-secondary btn-sm history-view-btn" data-report="'+esc(r.report_url||'')+'">View</button></td></tr>';
+  });
+  el('historyBody').innerHTML=h;
+  updateHistorySelectionUI();
+};
+
+if(el('historyBody')){
+  el('historyBody').addEventListener('change',function(e){
+    if(e.target&&e.target.classList.contains('history-row-cb')){
+      toggleHistoryRecord(e.target.getAttribute('data-id')||'',e.target.checked);
+    }
+  });
+  el('historyBody').addEventListener('click',function(e){
+    var btn=e.target&&e.target.closest?e.target.closest('.history-view-btn'):null;
+    if(btn)openReport(btn.getAttribute('data-report')||'');
+  });
+}
+if(el('historySelectAll')){
+  el('historySelectAll').addEventListener('change',function(){
+    toggleHistorySelectAll(this.checked);
+  });
+}
+
+renderThreats=function(){
+  if(threats.length===0){el('threatBody').innerHTML='<tr><td colspan="6"><div class="empty-hint">No threats</div></td></tr>';return}
+  var h='';
+  threats.forEach(function(r){
+    h+='<tr><td style="color:var(--cyan);word-break:break-all">'+esc(r.url)+'</td><td><span class="tag tag-'+esc(r.tag)+'">'+esc(r.type)+'</span></td><td>'+esc(r.client)+'</td><td style="color:'+r.rc+';font-weight:600">'+esc(r.risk)+'</td><td style="color:var(--text3);word-break:break-all">'+esc(r.src)+'</td><td style="color:var(--text4)">'+esc(r.t)+'</td></tr>';
+  });
+  el('threatBody').innerHTML=h;
+};
+
+el('topbarAction').onclick=function(){
+  if(currentPage==='clients'){openAddClientModal();return}
+  if(latestReportUrl){openReport(latestReportUrl);return}
+  fetch('/api/reports').then(function(r){return r.json()}).then(function(data){
+    if(data.items&&data.items.length){latestReportUrl=data.items[0].url;openReport(latestReportUrl)}
+    else showToast('No reports yet','error');
+  }).catch(function(e){showToast(e.message,'error')});
+};
+
+startScan=function(){
+  if(scanning)return;
+  var target=el('scanInput').value.trim();
+  if(!target){el('scanInput').style.borderColor='var(--red)';setTimeout(function(){el('scanInput').style.borderColor=''},1500);return}
+  var checks=document.querySelectorAll('#page-dashboard .option-toggle input');
+  var deep=checks[0]?checks[0].checked:true;
+  var headless=checks[1]?checks[1].checked:false;
+  scanning=true;
+  el('scanBtn').textContent='Scanning...';
+  el('progressLog').innerHTML='';
+  setProgress(8,'Preparing scanner');
+  var fake=12;
+  var timer=setInterval(function(){fake=Math.min(fake+7,88);setProgress(fake,'Scanner running')},1200);
+  apiPost('/api/scan',{target:target,mode:deep?'deep':'standard',depth:deep?3:1,headless:headless,report_format:'html'})
+    .then(function(data){
+      clearInterval(timer);
+      setProgress(100,'Scan complete');
+      applyScanPayload(data,target,'unassigned','cc-a');
+      showToast('Scan complete');
+    })
+    .catch(function(err){
+      clearInterval(timer);
+      setProgress(100,'Scan failed: '+err.message,false);
+      showToast(err.message,'error');
+    })
+    .finally(function(){scanning=false;el('scanBtn').textContent='Rescan'});
+};
+
+startBatch=function(){
+  var raw=el('batchInput').value.trim();
+  if(!raw){showToast('Please enter scan targets','error');return}
+  var targets=raw.split('\n').map(function(x){return x.trim()}).filter(Boolean);
+  var client=el('batchClientSelect').value||'unassigned';
+  var body=el('batchBody');
+  body.innerHTML=targets.map(function(t){return '<tr><td style="color:var(--cyan);word-break:break-all">'+esc(t)+'</td><td>'+esc(client)+'</td><td style="color:var(--cyan)">running</td><td><div class="progress-track"><div class="progress-fill" style="width:35%"></div></div></td><td>-</td></tr>'}).join('');
+  showToast('Batch submitted: '+targets.length+' targets');
+  apiPost('/api/batch',{targets:targets,mode:'deep',depth:2,report_format:'html'})
+    .then(function(data){
+      latestReportUrl=(data.summary&&data.summary.report_url)||latestReportUrl;
+      body.innerHTML=(data.items||[]).map(function(item){
+        var s=item.summary||{};
+        return '<tr><td style="color:var(--cyan);word-break:break-all">'+esc(item.target)+'</td><td>'+esc(client)+'</td><td style="color:'+(item.ok?'var(--accent)':'var(--red)')+'">'+(item.ok?'done':'error')+'</td><td><div class="progress-track"><div class="progress-fill" style="width:100%"></div></div></td><td>'+esc(item.ok?(s.high_risk||0):item.error)+'</td></tr>';
+      }).join('');
+      (data.items||[]).forEach(function(item){if(item.ok){histData.unshift({url:item.summary.target,client:client,tag:'cc-a',links:item.summary.suspicious_links||0,high:item.summary.high_risk||0,time:item.summary.duration||'0:00:00',date:item.summary.created_at||'',report_url:item.summary.report_url||''})}});
+      threats=resultToThreats(data,client).concat(threats).slice(0,300);
+      renderHistory();renderThreats();updateDashboard(data.summary||{});
+      showToast('Batch complete');
+    })
+    .catch(function(err){showToast(err.message,'error')});
+};
+
+fetch('/api/reports').then(function(r){return r.json()}).then(function(data){if(data.items&&data.items.length)latestReportUrl=data.items[0].url}).catch(function(){});
+
+renderTasks();renderHistory();renderClients();renderThreats();
+syncClientUI();
+animateCounters(el('page-dashboard'));
+
+/* ====== Fused async backend workflow: keep code.html layout, use scanner job APIs ====== */
+(function(){
+  var editingClientId='';
+
+  function apiGet(path){
+    return fetch(path).then(function(r){return r.json().then(function(data){if(!r.ok||data.ok===false)throw new Error(data.error||('HTTP '+r.status));return data})});
+  }
+  function apiPut(path,payload){
+    return fetch(path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload||{})}).then(function(r){return r.json().then(function(data){if(!r.ok||data.ok===false)throw new Error(data.error||('HTTP '+r.status));return data})});
+  }
+  function apiDelete(path){
+    return fetch(path,{method:'DELETE'}).then(function(r){return r.text().then(function(text){
+      var data=null;
+      try{data=text?JSON.parse(text):{}}
+      catch(e){throw new Error('删除接口未生效，请重启 Flask 服务后刷新页面')}
+      if(!r.ok||data.ok===false)throw new Error(data.error||('HTTP '+r.status));
+      return data;
+    })});
+  }
+  function q(id){return el(id)}
+  function val(id,fb){var n=q(id);return n?n.value:fb}
+  function checked(id,fb){var n=q(id);return n?n.checked:fb}
+  function intVal(id,fb){var n=parseInt(val(id,fb),10);return isNaN(n)?fb:n}
+  function splitRules(s){return String(s||'').split(/[\n,]/).map(function(x){return x.trim()}).filter(Boolean)}
+  function jsArg(v){return String(v==null?'':v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+  function clientById(id){for(var i=0;i<clients.length;i++){if(String(clients[i].id)===String(id))return clients[i]}return null}
+
+  function injectFusedControls(){
+    if(q('fusedScanAdvanced'))return;
+    var scanProgress=q('scanProgress');
+    if(scanProgress){
+      var box=document.createElement('div');
+      box.id='fusedScanAdvanced';
+      box.className='card';
+      box.style.cssText='padding:18px;margin-top:18px;background:var(--surface-2);box-shadow:none';
+      box.innerHTML=
+        '<div class="section-title" style="font-size:.98rem;margin-bottom:14px"><span class="section-dot"></span> 高级参数</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px">'+
+          '<div class="form-group"><label class="form-label">关联客户</label><select class="form-select" id="fusedScanClient"></select></div>'+
+          '<div class="form-group"><label class="form-label">扫描模式</label><select class="form-select" id="fusedScanMode"><option value="deep">deep 完整</option><option value="standard">standard 标准</option><option value="fast">fast 快速</option></select></div>'+
+          '<div class="form-group"><label class="form-label">报告格式</label><select class="form-select" id="fusedScanFormat"><option value="html">html</option><option value="txt">txt</option><option value="json">json</option><option value="csv">csv</option></select></div>'+
+          '<div class="form-group"><label class="form-label">报告目录</label><input class="form-input" id="fusedScanOutput" placeholder="reports 或 reports\\客户A"></div>'+
+          '<div class="form-group"><label class="form-label">深度</label><input class="form-input" id="fusedScanDepth" type="number" min="0" max="20" value="3"></div>'+
+          '<div class="form-group"><label class="form-label">线程</label><input class="form-input" id="fusedScanThreads" type="number" min="1" max="100" value="8"></div>'+
+          '<div class="form-group"><label class="form-label">超时/秒</label><input class="form-input" id="fusedScanTimeout" type="number" min="5" max="300" value="30"></div>'+
+          '<div class="form-group"><label class="form-label">JS等待/秒</label><input class="form-input" id="fusedScanJsWait" type="number" min="1" max="60" value="3"></div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px">'+
+          '<div class="form-group"><label class="form-label">关键词文件</label><input class="form-input" id="fusedScanKeyword" placeholder="留空使用 keywords_example.txt"></div>'+
+          '<div class="form-group"><label class="form-label">代理</label><input class="form-input" id="fusedScanProxy" placeholder="http://127.0.0.1:8080"></div>'+
+          '<div class="form-group"><label class="form-label">Chrome 路径</label><input class="form-input" id="fusedScanBinary" placeholder="C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"></div>'+
+          '<div class="form-group"><label class="form-label">ChromeDriver 路径</label><input class="form-input" id="fusedScanDriver" placeholder="C:\\drivers\\chromedriver.exe"></div>'+
+        '</div>'+
+        '<div class="form-group" style="margin-bottom:12px"><label class="form-label">排除规则</label><input class="form-input" id="fusedScanExclude" placeholder="*.jpg, *.png, node_modules/"></div>'+
+        '<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">'+
+          '<label class="option-toggle"><input id="fusedScanVerbose" type="checkbox"><span class="toggle-track"></span> 详细日志</label>'+
+          '<button class="btn btn-secondary btn-sm" type="button" onclick="el(\'scanInput\').value=\'test_dark_link.html\'">填入 test_dark_link.html</button>'+
+        '</div>';
+      scanProgress.parentNode.insertBefore(box,scanProgress);
+    }
+
+    var batchCard=q('page-batch')&&q('page-batch').querySelector('.card');
+    if(batchCard&&!q('batchTargetFile')){
+      var top=document.createElement('div');
+      top.style.cssText='display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:16px;align-items:end';
+      top.innerHTML='<div class="form-group"><label class="form-label">上传目标文件 (.txt/.csv)</label><input class="form-input" id="batchTargetFile" type="file" accept=".txt,.csv"></div><button class="btn btn-secondary" type="button" onclick="uploadBatchTargetFile()">解析目标文件</button>';
+      batchCard.insertBefore(top,batchCard.children[2]||batchCard.firstChild);
+
+      var adv=document.createElement('div');
+      adv.id='fusedBatchAdvanced';
+      adv.className='card';
+      adv.style.cssText='padding:16px;margin:18px 0;background:var(--surface-2);box-shadow:none';
+      adv.innerHTML=
+        '<div class="section-title" style="font-size:.98rem;margin-bottom:14px"><span class="section-dot"></span> 批量高级参数</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px">'+
+          '<div class="form-group"><label class="form-label">扫描模式</label><select class="form-select" id="fusedBatchMode"><option value="deep">deep 完整</option><option value="standard">standard 标准</option><option value="fast">fast 快速</option></select></div>'+
+          '<div class="form-group"><label class="form-label">报告格式</label><select class="form-select" id="fusedBatchFormat"><option value="html">html</option><option value="txt">txt</option><option value="json">json</option><option value="csv">csv</option></select></div>'+
+          '<div class="form-group"><label class="form-label">报告目录</label><input class="form-input" id="fusedBatchOutput" placeholder="reports 或 reports\\batch"></div>'+
+          '<div class="form-group"><label class="form-label">超时/秒</label><input class="form-input" id="fusedBatchTimeout" type="number" min="5" max="300" value="30"></div>'+
+          '<div class="form-group"><label class="form-label">深度</label><input class="form-input" id="fusedBatchDepth" type="number" min="0" max="20" value="3"></div>'+
+          '<div class="form-group"><label class="form-label">线程</label><input class="form-input" id="fusedBatchThreads" type="number" min="1" max="100" value="8"></div>'+
+          '<div class="form-group"><label class="form-label">关键词文件</label><input class="form-input" id="fusedBatchKeyword" placeholder="留空使用 keywords_example.txt"></div>'+
+          '<div class="form-group"><label class="form-label">代理</label><input class="form-input" id="fusedBatchProxy" placeholder="http://127.0.0.1:8080"></div>'+
+        '</div>'+
+        '<div class="form-group"><label class="form-label">排除规则</label><input class="form-input" id="fusedBatchExclude" placeholder="*.jpg, *.png, node_modules/"></div>'+
+        '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px">'+
+          '<label class="option-toggle"><input id="fusedBatchHeadless" type="checkbox"><span class="toggle-track"></span> JS 渲染 / 无头浏览器</label>'+
+          '<label class="option-toggle"><input id="fusedBatchVerbose" type="checkbox"><span class="toggle-track"></span> 详细日志</label>'+
+        '</div>';
+      batchCard.insertBefore(adv,batchCard.querySelector('div[style*="display:flex;gap:12px"]'));
+    }
+  }
+
+  function refreshClientSelects(){
+    var opts='<option value="">不关联客户</option>';
+    clients.forEach(function(c){opts+='<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>'});
+    if(q('fusedScanClient'))q('fusedScanClient').innerHTML=opts;
+    if(q('batchClientSelect')){
+      var old=q('batchClientSelect').value;
+      q('batchClientSelect').innerHTML=opts.replace('不关联客户','-- 选择客户 --');
+      q('batchClientSelect').value=old;
+    }
+  }
+
+  syncClientUI=function(){
+    renderClientChips();
+    renderBatchClientSelect();
+    renderHistoryClientFilter();
+    refreshClientSelects();
+  };
+
+  renderClientChips=function(){
+    var container=q('taskClientChips');
+    if(!container)return;
+    if(clients.length===0){container.innerHTML='<span style="font-size:.82rem;color:var(--text4)">暂无客户，请先在客户列表中添加</span>';selectedTaskClientId=null;return}
+    var colorKeys=['cc-a','cc-b','cc-c','cc-d'],h='';
+    clients.forEach(function(c,i){
+      h+='<button class="client-chip '+colorKeys[i%4]+(String(selectedTaskClientId)===String(c.id)?' active':'')+'" data-client-id="'+esc(c.id)+'" onclick="selTaskClient(this,\''+jsArg(c.id)+'\')"><span class="chip-dot"></span> '+esc(c.name)+'</button>';
+    });
+    container.innerHTML=h;
+  };
+
+  renderBatchClientSelect=function(){refreshClientSelects()};
+
+  renderHistoryClientFilter=function(){
+    var sel=q('historyClientFilter');
+    if(!sel)return;
+    var val=sel.value;
+    sel.innerHTML='<option>全部客户</option>';
+    clients.forEach(function(c){var opt=document.createElement('option');opt.value=c.name;opt.textContent=c.name;sel.appendChild(opt)});
+    sel.value=val;
+  };
+
+  renderClients=function(){
+    if(clients.length===0){q('clientCards').innerHTML='<div class="client-empty"><div class="empty-title">暂无客户资产</div><div class="empty-sub">添加客户后可关联扫描任务、沉淀风险记录和资产状态。</div></div>';return}
+    var h='';
+    clients.forEach(function(c){
+      var colorKey=c.color||'accent',note=c.notes||'暂无备注';
+      h+='<div class="client-card" style="--client-color:var(--'+colorKey+');--client-soft:var(--'+colorKey+'-g)"><div class="client-card-inner">'
+       +'<div class="client-card-top"><div class="client-avatar">'+esc(c.icon||'C')+'</div><div class="client-main"><div class="client-title-row"><div class="client-name">'+esc(c.name)+'</div><span class="client-status">active</span></div><div class="client-domain">'+esc(c.domain||'未设置')+'</div></div>'
+       +'<div class="client-actions"><button class="client-action-btn" onclick="editClient(\''+jsArg(c.id)+'\')">编辑</button><button class="client-action-btn danger" onclick="deleteClient(\''+jsArg(c.id)+'\')">删除</button></div></div>'
+       +'<div class="client-metrics"><div class="client-metric" style="--metric-color:var(--accent)"><div class="client-metric-label">累计扫描</div><div class="client-metric-value">'+Number(c.scans||0).toLocaleString()+'</div></div><div class="client-metric" style="--metric-color:var(--red)"><div class="client-metric-label">发现威胁</div><div class="client-metric-value">'+Number(c.threats||0).toLocaleString()+'</div></div><div class="client-metric" style="--metric-color:var(--cyan)"><div class="client-metric-label">活跃任务</div><div class="client-metric-value">'+Number(c.active||0).toLocaleString()+'</div></div></div>'
+       +'<div class="client-footer"><div class="client-contact"><span class="client-contact-dot"></span><span>联系人：'+esc(c.contact||'--')+'</span></div><div class="client-note" title="'+esc(note)+'">'+esc(note)+'</div></div></div></div>';
+    });
+    q('clientCards').innerHTML=h;
+  };
+
+  openAddClientModal=function(){
+    editingClientId='';
+    q('clientName').value='';q('clientDomain').value='';q('clientContact').value='';q('clientNotes').value='';
+    selectedClientIcon='X';selectedClientColor='accent';
+    q('iconPicks').querySelectorAll('.client-icon-pick').forEach(function(b,i){b.classList.toggle('active',i===0)});
+    q('colorPicks').querySelectorAll('.client-color-pick').forEach(function(b,i){b.classList.toggle('active',i===0)});
+    q('addClientModal').querySelector('.modal-title').textContent='新增客户';
+    q('addClientModal').querySelector('.modal-actions .btn-primary').textContent='确认添加';
+    q('addClientModal').classList.add('show');
+  };
+
+  editClient=function(id){
+    var c=clientById(id);if(!c)return;
+    editingClientId=id;
+    q('clientName').value=c.name||'';q('clientDomain').value=c.domain==='未设置'?'':(c.domain||'');q('clientContact').value=c.contact==='--'?'':(c.contact||'');q('clientNotes').value=c.notes||'';
+    selectedClientIcon=c.icon||'X';selectedClientColor=c.color||'accent';
+    q('iconPicks').querySelectorAll('.client-icon-pick').forEach(function(b){b.classList.toggle('active',b.textContent===selectedClientIcon)});
+    q('colorPicks').querySelectorAll('.client-color-pick').forEach(function(b){b.classList.toggle('active',b.style.background.indexOf('var(--'+selectedClientColor+')')>=0||b.title===({accent:'绿',cyan:'青',purple:'紫',yellow:'黄'}[selectedClientColor]))});
+    q('addClientModal').querySelector('.modal-title').textContent='编辑客户';
+    q('addClientModal').querySelector('.modal-actions .btn-primary').textContent='保存修改';
+    q('addClientModal').classList.add('show');
+  };
+
+  saveClient=function(){
+    var payload={name:q('clientName').value.trim(),domain:q('clientDomain').value.trim(),contact:q('clientContact').value.trim(),notes:q('clientNotes').value.trim(),icon:selectedClientIcon,color:selectedClientColor};
+    if(!payload.name){showToast('请填写客户名称','error');return}
+    var req=editingClientId?apiPut('/api/clients/'+encodeURIComponent(editingClientId),payload):apiPost('/api/clients',payload);
+    req.then(function(){closeAddClientModal();return loadBackendState(false)}).then(function(){showToast('客户已保存')}).catch(function(e){showToast(e.message,'error')});
+  };
+
+  deleteClient=function(id){
+    var c=clientById(id);if(!c)return;
+    if(!confirm('确认删除客户「'+c.name+'」？'))return;
+    apiDelete('/api/clients/'+encodeURIComponent(id)).then(function(){return loadBackendState(false)}).then(function(){showToast('客户已删除')}).catch(function(e){showToast(e.message,'error')});
+  };
+
+  function taskTag(name){
+    var keys=['cc-a','cc-b','cc-c','cc-d'],idx=0;
+    clients.forEach(function(c,i){if(c.name===name)idx=i});
+    return keys[idx%keys.length];
+  }
+
+  renderTasks=function(){
+    var head=q('taskBody');
+    if(allTasks.length===0){head.innerHTML='<tr><td colspan="7"><div class="empty-hint">暂无任务，请先创建</div></td></tr>';if(q('taskSelectAll'))q('taskSelectAll').checked=false;updateBatchBar();return}
+    var sM={pending:['待执行','var(--yellow)'],running:['执行中','var(--cyan)'],done:['已完成','var(--accent)'],error:['异常','var(--red)']},pM={critical:['紧急','var(--red)'],high:['高','var(--yellow)'],normal:['普通','var(--accent)'],low:['低','var(--text3)']},tM={'cc-a':'safe','cc-b':'info','cc-c':'purple','cc-d':'warning'},h='';
+    allTasks.forEach(function(t){
+      h+='<tr data-task-id="'+esc(t.id)+'"><td style="text-align:center;width:40px"><input type="checkbox" class="task-checkbox task-row-cb" data-id="'+esc(t.id)+'" onchange="updateBatchBar()"></td><td style="font-weight:500">'+esc(t.name)+'</td><td><span class="tag tag-'+(tM[t.tag]||'safe')+'">'+esc(t.client)+'</span></td><td style="color:var(--cyan);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t.url)+'</td><td style="color:'+(sM[t.status]||sM.pending)[1]+';font-weight:500">'+(sM[t.status]||sM.pending)[0]+'</td><td style="color:'+(pM[t.priority]||pM.normal)[1]+';font-weight:500">'+(pM[t.priority]||pM.normal)[0]+'</td><td style="color:var(--text4)">'+esc(t.created)+'<div style="display:flex;gap:6px;margin-top:8px"><button class="btn btn-secondary btn-sm" onclick="runTask(\''+jsArg(t.id)+'\')">运行</button><button class="btn btn-danger" onclick="deleteTask(\''+jsArg(t.id)+'\')">删除</button></div></td></tr>';
+    });
+    head.innerHTML=h;
+  };
+
+  createTask=function(){
+    var n=q('taskName').value.trim(),u=q('taskTarget').value.trim();
+    if(!n||!u){showToast('请填写任务名称和目标','error');return}
+    var c=clientById(selectedTaskClientId);
+    apiPost('/api/tasks',{name:n,target:u,client_id:selectedTaskClientId||'',client:c?c.name:'unassigned',priority:q('taskPriority').value,mode:'deep',depth:3,notes:q('taskNotes').value.trim()})
+      .then(function(){q('taskName').value='';q('taskTarget').value='';q('taskNotes').value='';return loadBackendState(false)})
+      .then(function(){showToast('任务已创建')}).catch(function(e){showToast(e.message,'error')});
+  };
+
+  runTask=function(id){
+    showScanProgress('运行任务','任务会调用扫描引擎并实时输出日志');
+    apiPost('/api/tasks/'+encodeURIComponent(id)+'/start',{}).then(function(started){return pollJob(started.job.id,function(data){if(data&&data.summary)applyScanPayload(data,data.summary.target,data.summary.client||'unassigned','cc-a')})}).then(function(){return loadBackendState(false)}).then(function(){showToast('任务运行完成')}).catch(function(e){setProgress(100,'任务失败: '+e.message,false);showToast(e.message,'error')});
+  };
+
+  deleteTask=function(id){
+    if(!confirm('确认删除该任务？'))return;
+    apiDelete('/api/tasks/'+encodeURIComponent(id)).then(function(){return loadBackendState(false)}).then(function(){showToast('任务已删除')}).catch(function(e){showToast(e.message,'error')});
+  };
+
+  function showScanProgress(label,hint){
+    q('scanProgress').style.display='block';
+    q('progressLog').innerHTML='';
+    setProgress(0,label||hint||'准备中');
+  }
+
+  function updateJob(job){
+    setProgress(Number(job.progress||0),job.message||job.status);
+    if(job.logs&&job.logs.length){
+      q('progressLog').innerHTML=job.logs.slice(-150).map(function(x){return '<div style="display:flex;gap:12px"><span style="color:var(--text4);min-width:68px">'+esc((x.time||'').split(' ').pop())+'</span><span>'+esc(x.message||'')+'</span></div>'}).join('');
+      q('progressLog').scrollTop=q('progressLog').scrollHeight;
+    }
+    var live=q('liveLog');
+    if(live&&job.logs)live.innerHTML=job.logs.slice(-120).map(function(x){return '<div>'+esc(x.message||'')+'</div>'}).join('');
+  }
+
+  function pollJob(jobId,onDone){
+    return new Promise(function(resolve,reject){
+      function tick(){
+        apiGet('/api/jobs/'+encodeURIComponent(jobId)).then(function(data){
+          var job=data.job;updateJob(job);
+          if(job.status==='done'){onDone&&onDone(job.result,job);resolve(job);return}
+          if(job.status==='error'){reject(new Error(job.error||'任务失败'));return}
+          setTimeout(tick,900);
+        }).catch(reject);
+      }
+      tick();
+    });
+  }
+
+  function scanPayload(){
+    var target=q('scanInput').value.trim();
+    var client=clientById(val('fusedScanClient',''));
+    var checks=document.querySelectorAll('#page-dashboard .option-toggle input');
+    var deep=checks[0]?checks[0].checked:true,headless=checks[1]?checks[1].checked:false;
+    return {target:target,client_id:client?client.id:'',client:client?client.name:'unassigned',mode:val('fusedScanMode',deep?'deep':'standard'),report_format:val('fusedScanFormat','html'),depth:intVal('fusedScanDepth',deep?3:1),threads:intVal('fusedScanThreads',8),timeout:intVal('fusedScanTimeout',30),js_wait:intVal('fusedScanJsWait',3),headless:headless,verbose:checked('fusedScanVerbose',false),keyword_file:val('fusedScanKeyword','').trim(),proxy:val('fusedScanProxy','').trim(),exclude:splitRules(val('fusedScanExclude','')),output_dir:val('fusedScanOutput','').trim(),headless_binary:val('fusedScanBinary','').trim(),headless_driver:val('fusedScanDriver','').trim()};
+  }
+
+  startScan=function(){
+    if(scanning)return;
+    var payload=scanPayload();
+    if(!payload.target){q('scanInput').style.borderColor='var(--red)';setTimeout(function(){q('scanInput').style.borderColor=''},1500);return}
+    scanning=true;q('scanBtn').textContent='Scanning...';showScanProgress('提交扫描任务',payload.target);
+    apiPost('/api/scan/start',payload).then(function(started){return pollJob(started.job.id,function(data){applyScanPayload(data,payload.target,payload.client,'cc-a')})}).then(function(){return loadBackendState(false)}).then(function(){showToast('扫描完成')}).catch(function(e){setProgress(100,'扫描失败: '+e.message,false);showToast(e.message,'error')}).finally(function(){scanning=false;q('scanBtn').textContent='重新扫描'});
+  };
+
+  function batchPayload(){
+    var client=clientById(val('batchClientSelect',''));
+    return {targets:q('batchInput').value.split(/\r?\n/).map(function(x){return x.trim()}).filter(Boolean),client_id:client?client.id:'',client:client?client.name:'unassigned',mode:val('fusedBatchMode','deep'),report_format:val('fusedBatchFormat','html'),depth:intVal('fusedBatchDepth',3),threads:intVal('fusedBatchThreads',8),timeout:intVal('fusedBatchTimeout',30),keyword_file:val('fusedBatchKeyword','').trim(),proxy:val('fusedBatchProxy','').trim(),exclude:splitRules(val('fusedBatchExclude','')),output_dir:val('fusedBatchOutput','').trim(),headless:checked('fusedBatchHeadless',false),verbose:checked('fusedBatchVerbose',false)};
+  }
+
+  startBatch=function(){
+    var payload=batchPayload();
+    if(!payload.targets.length){showToast('请输入扫描目标','error');return}
+    var body=q('batchBody'),clientName=payload.client;
+    body.innerHTML=payload.targets.map(function(t){return '<tr><td style="color:var(--cyan);word-break:break-all">'+esc(t)+'</td><td>'+esc(clientName)+'</td><td style="color:var(--cyan)">queued</td><td><div class="progress-track"><div class="progress-fill" style="width:5%"></div></div></td><td>-</td></tr>'}).join('');
+    showScanProgress('提交批量任务','共 '+payload.targets.length+' 个目标');
+    apiPost('/api/batch/start',payload).then(function(started){return pollJob(started.job.id,function(data){
+      latestReportUrl=(data.summary&&data.summary.report_url)||latestReportUrl;
+      body.innerHTML=(data.items||[]).map(function(item){var s=item.summary||{};return '<tr><td style="color:var(--cyan);word-break:break-all">'+esc(item.target)+'</td><td>'+esc(clientName)+'</td><td style="color:'+(item.ok?'var(--accent)':'var(--red)')+'">'+(item.ok?'done':'error')+'</td><td><div class="progress-track"><div class="progress-fill" style="width:100%"></div></div></td><td>'+esc(item.ok?(s.high_risk||0):item.error)+'</td></tr>'}).join('');
+      (data.items||[]).forEach(function(item){if(item.ok){histData.unshift({url:item.summary.target,client:clientName,tag:'cc-a',links:item.summary.suspicious_links||0,high:item.summary.high_risk||0,time:item.summary.duration||'0:00:00',date:item.summary.created_at||'',report_url:item.summary.report_url||''})}});
+      threats=resultToThreats(data,clientName).concat(threats).slice(0,300);renderHistory();renderThreats();updateDashboard(data.summary||{});
+    })}).then(function(){return loadBackendState(false)}).then(function(){showToast('批量扫描完成')}).catch(function(e){setProgress(100,'批量失败: '+e.message,false);showToast(e.message,'error')});
+  };
+
+  uploadBatchTargetFile=function(){
+    var file=q('batchTargetFile')&&q('batchTargetFile').files[0];
+    if(!file){showToast('请选择目标文件','error');return}
+    var form=new FormData();form.append('file',file);
+    showScanProgress('解析目标文件',file.name);
+    fetch('/api/upload-targets',{method:'POST',body:form}).then(function(r){return r.json().then(function(data){if(!r.ok||data.ok===false)throw new Error(data.error||'上传失败');return data})}).then(function(data){q('batchInput').value=(data.targets||[]).join('\n');setProgress(100,'已载入 '+(data.count||0)+' 个目标');showToast('目标文件已解析')}).catch(function(e){setProgress(100,'解析失败: '+e.message,false);showToast(e.message,'error')});
+  };
+
+  function hydrateHistory(items){
+    histData=(items||[]).map(function(s,index){return {id:s.id||('hist_local_'+index),url:s.target,client:s.client||'unassigned',tag:'cc-a',links:s.suspicious_links||0,high:s.high_risk||0,time:s.duration||'0:00:00',date:s.created_at||'',report_url:s.report_url||''}});
+    var nextSelected={};
+    histData.forEach(function(r){if(r.id&&historySelected[r.id])nextSelected[r.id]=true});
+    historySelected=nextSelected;
+  }
+
+  deleteSelectedHistoryRecords=function(){
+    var ids=Object.keys(historySelected).filter(function(id){return historySelected[id]});
+    if(!ids.length){showToast('请先选择要删除的历史记录');return}
+    if(!confirm('确认删除选中的 '+ids.length+' 条扫描历史记录？此操作不会删除 reports 目录下的报告文件。'))return;
+    Promise.all(ids.map(function(id){return apiDelete('/api/history/'+encodeURIComponent(id))})).then(function(){
+      ids.forEach(function(id){delete historySelected[id]});
+      return loadBackendState(false);
+    }).then(function(){
+      showToast('已删除选中的扫描历史');
+    }).catch(function(e){
+      showToast(e.message,'error');
+    });
+  };
+
+  clearHistoryRecords=function(){
+    if(!histData.length){showToast('当前没有扫描历史');return}
+    if(!confirm('确认清空所有扫描历史记录？此操作不会删除 reports 目录下的报告文件。'))return;
+    apiDelete('/api/history').then(function(){
+      histData=[];
+      historySelected={};
+      threats=[];
+      latestReportUrl='';
+      renderHistory();
+      renderThreats();
+      updateDashboard({});
+      return loadBackendState(false);
+    }).then(function(){
+      showToast('扫描历史已清空');
+    }).catch(function(e){
+      showToast(e.message,'error');
+    });
+  };
+
+  function loadBackendState(applyDefaults){
+    injectFusedControls();
+    return apiGet('/api/state').then(function(data){
+      var st=data.state||{};
+      clients=st.clients||[];
+      allTasks=(st.tasks||[]).map(function(t){return {id:t.id,name:t.name,client:t.client||'unassigned',url:t.target,status:t.status||'pending',priority:t.priority||'normal',created:t.created_at||'',tag:taskTag(t.client)}});
+      hydrateHistory(st.history||[]);
+      renderClients();syncClientUI();renderTasks();renderHistory();renderThreats();
+      if(st.settings&&applyDefaults!==false){
+        if(q('fusedScanMode'))q('fusedScanMode').value=st.settings.mode||'deep';
+        if(q('fusedBatchMode'))q('fusedBatchMode').value=st.settings.mode||'deep';
+        if(q('fusedScanFormat'))q('fusedScanFormat').value=st.settings.report_format||'html';
+        if(q('fusedBatchFormat'))q('fusedBatchFormat').value=st.settings.report_format||'html';
+        if(q('fusedScanDepth'))q('fusedScanDepth').value=st.settings.depth||3;
+        if(q('fusedBatchDepth'))q('fusedBatchDepth').value=st.settings.depth||3;
+      }
+      updateDashboard(st.history&&st.history[0]?st.history[0]:{});
+    });
+  }
+
+  q('topbarAction').onclick=function(){
+    if(currentPage==='clients'){openAddClientModal();return}
+    if(currentPage==='batch'){var input=q('batchTargetFile');if(input)input.click();return}
+    if(latestReportUrl){openReport(latestReportUrl);return}
+    apiGet('/api/reports').then(function(data){if(data.items&&data.items.length){latestReportUrl=data.items[0].url;openReport(latestReportUrl)}else showToast('暂无报告','error')}).catch(function(e){showToast(e.message,'error')});
+  };
+
+  fetch('/api/reports').then(function(r){return r.json()}).then(function(data){if(data.items&&data.items.length)latestReportUrl=data.items[0].url}).catch(function(){});
+  loadBackendState(true).catch(function(e){showToast(e.message,'error')});
+})();
+</script>
+</body>
+</html>
