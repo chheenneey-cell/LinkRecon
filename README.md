@@ -1,8 +1,5 @@
 # 🔗 LinkRecon
 
-<p align="center">
-  <img src="assets/branding/linkrecon-logo.png" alt="LinkRecon" width="320">
-</p>
 
 用于网站安全巡检的暗链扫描工具，支持网页、本地 HTML 文件和目录，提供 Web 控制台与命令行入口。
 
