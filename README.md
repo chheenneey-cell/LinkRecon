@@ -1,6 +1,3 @@
-[README.md](https://github.com/user-attachments/files/33395227/README.md)
-# LinkRecon
-本项目为网站暗链接扫描图形化工具
 # LinkRecon - 专业暗链扫描工具
 
 LinkRecon 是一款功能强大的专业暗链扫描工具，专注于检测网站、HTML文件或目录中的隐蔽链接、隐藏元素和恶意代码。该工具能够智能识别扫描目标类型（本地文件/目录、内网URL、公网URL），并自动调整扫描策略以获得最佳效果，是安全人员进行网站安全审计和应急响应的理想工具。
