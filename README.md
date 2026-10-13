@@ -48,7 +48,6 @@ python LinkRecon.py --help
 - Web 本地扫描范围：`LINKRECON_SCAN_ROOTS`，默认仅允许项目目录。
 - HTTPS 部署：设置 `LINKRECON_COOKIE_SECURE=1`。
 
-账号、客户资料及扫描历史位于 `data/`。请保留 `.gitignore`，不要提交运行数据、口令、报告和日志。
 
 ## ⚖️ 免责声明
 
