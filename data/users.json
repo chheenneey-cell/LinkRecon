@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "users": {
+    "admin": {
+      "password": "pbkdf2_sha256$210000$EPKt5zuGTv0i9adtW/SDEw==$LG3O3EVb+9goWaa8zV3PN1hmOfw2+ykV+IMWbnfGuLQ=",
+      "role": "admin",
+      "created_at": "2026-10-14 01:26:43",
+      "last_login": "2026-10-14 01:27:04",
+      "disabled": false
+    }
+  }
+}
